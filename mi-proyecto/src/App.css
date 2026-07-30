@@ -1,0 +1,108 @@
+.app-shell {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5faff 0%, #ebf7ff 45%, #dcefff 100%);
+}
+
+.navbar {
+  background: linear-gradient(90deg, #0b3d91 0%, #1d6fe7 45%, #6bb8ff 100%);
+}
+
+.navbar-brand {
+  color: #f8fbff !important;
+  letter-spacing: 0.01em;
+}
+
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  font-size: 1rem;
+}
+
+.nav-link {
+  color: #f8fbff !important;
+  border-radius: 0.5rem;
+  padding: 0.55rem 0.8rem;
+  transition: background-color 0.2s ease;
+}
+
+.nav-link:hover,
+.nav-link:focus-visible {
+  background-color: rgba(255, 255, 255, 0.16);
+  color: #ffffff !important;
+}
+
+.btn-outline-light {
+  border-color: rgba(240, 248, 255, 0.9);
+}
+
+.btn-outline-light:hover,
+.btn-outline-light:focus-visible {
+  background-color: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+}
+
+.btn-light {
+  color: #0b3d91;
+  font-weight: 600;
+}
+
+.hero-section {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 3rem 1.25rem 4rem;
+}
+
+.hero-card {
+  background: rgba(255, 255, 255, 0.96);
+  border-radius: 1.25rem;
+  box-shadow: 0 16px 40px rgba(11, 61, 145, 0.12);
+  border: 1px solid rgba(29, 111, 231, 0.16);
+}
+
+.modal-content {
+  border-radius: 1rem;
+  border: 1px solid rgba(29, 111, 231, 0.18);
+}
+
+.modal-header .btn-close {
+  filter: invert(0.3) grayscale(1);
+}
+
+.form-control:focus {
+  border-color: #1d6fe7;
+  box-shadow: 0 0 0 0.2rem rgba(29, 111, 231, 0.2);
+}
+
+.btn-primary {
+  background: linear-gradient(90deg, #0b3d91 0%, #1d6fe7 55%, #6bb8ff 100%);
+  border-color: #1d6fe7;
+}
+
+.btn-primary:hover,
+.btn-primary:focus-visible {
+  background: #0b3d91;
+  border-color: #0b3d91;
+}
+
+.eyebrow {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #1d6fe7;
+}
+
+@media (max-width: 991.98px) {
+  .navbar-collapse {
+    padding-top: 0.75rem;
+  }
+
+  .navbar-nav {
+    gap: 0.25rem;
+  }
+}
