@@ -105,6 +105,8 @@ body {
   border-radius: 26px;
   padding: 30px;
   box-shadow: 0 20px 40px rgba(46, 74, 111, 0.12);
+}
+
 .tabs {
   display: flex;
   justify-content: center;
