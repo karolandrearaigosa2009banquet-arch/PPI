@@ -1,51 +1,7 @@
 import { useState } from 'react'
 import CrudPqr from './CrudPqr'
-import CrudProductos from './CrudProductos'
 
-function Productos({ sesion, perfilUsuario }) {
-  const [pestana, setPestana] = useState('pqr')
-
-  return (
-    <div style={{ maxWidth: 1000, margin: '0 auto', padding: '20px' }}>
-      {/* MENÚ DE NAVEGACIÓN */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 30, borderBottom: '2px solid #ddd', paddingBottom: 15 }}>
-        <button
-          onClick={() => setPestana('pqr')}
-          style={{
-            padding: '12px 24px',
-            background: pestana === 'pqr' ? '#007bff' : '#e9ecef',
-            color: pestana === 'pqr' ? '#fff' : '#000',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontWeight: pestana === 'pqr' ? 'bold' : 'normal',
-            fontSize: '16px',
-          }}
-        >
-          📋 Sistema de PQR
-        </button>
-        <button
-          onClick={() => setPestana('productos')}
-          style={{
-            padding: '12px 24px',
-            background: pestana === 'productos' ? '#007bff' : '#e9ecef',
-            color: pestana === 'productos' ? '#fff' : '#000',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontWeight: pestana === 'productos' ? 'bold' : 'normal',
-            fontSize: '16px',
-          }}
-        >
-          📦 Productos
-        </button>
-      </div>
-
-      {/* CONTENIDO DE CADA PESTAÑA */}
-      {pestana === 'pqr' && <CrudPqr sesion={sesion} perfilUsuario={perfilUsuario} />}
-      {pestana === 'productos' && <CrudProductos sesion={sesion} />}
-    </div>
-  )
+export default function Productos({ session, profile }) {
+  const [tab, setTab] = useState('pqr')
+  return <section className="dashboard"><div className="dashboard-hero"><div><span className="kicker">Panel de {profile.role === 'admin' ? 'administración' : 'seguimiento'}</span><h1>{profile.role === 'admin' ? 'Gestiona los casos pendientes' : '¿Cómo podemos ayudarte hoy?'}</h1><p>{profile.role === 'admin' ? 'Responde los casos recibidos y mantén informada a la comunidad.' : 'Radica una solicitud y consulta el estado de tus PQR en cualquier momento.'}</p></div><div className="hero-stat"><strong>{profile.role === 'admin' ? 'PQR' : 'Mi espacio'}</strong><span>{profile.role === 'admin' ? 'Atención prioritaria' : 'Seguro y privado'}</span></div></div><nav className="tabs" aria-label="Navegación del panel"><button className={tab === 'pqr' ? 'active' : ''} onClick={() => setTab('pqr')}>PQR</button><button className={tab === 'help' ? 'active' : ''} onClick={() => setTab('help')}>Información</button></nav>{tab === 'pqr' ? <CrudPqr session={session} profile={profile} /> : <section className="content-card info"><h2>Antes de radicar</h2><p>Una petición solicita información o una acción; una queja expresa inconformidad con el servicio; un reclamo solicita solución ante una situación concreta.</p><p>Describe los hechos con claridad. Podrás ver la respuesta desde este mismo panel cuando el equipo la publique.</p><button className="btn btn-primary" onClick={() => setTab('pqr')}>Ir a mis PQR</button></section>}</section>
 }
-
-export default Productos

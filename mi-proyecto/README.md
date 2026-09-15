@@ -1,16 +1,20 @@
-# React + Vite
+# PQR Salud
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Aplicación web para registrar y dar seguimiento a peticiones, quejas y reclamos de un centro de salud. Está construida con React, Vite y Supabase.
 
-Currently, two official plugins are available:
+## Puesta en marcha
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+1. Instala Node.js 20 o superior y ejecuta `npm ci`.
+2. Copia `.env.example` como `.env.local` y añade la URL y la clave pública (publishable/anon) de tu proyecto Supabase. Nunca uses una clave `service_role` en este archivo.
+3. Ejecuta la migración `supabase/migrations/202609150001_secure_pqr.sql` desde el SQL Editor de Supabase o mediante la CLI vinculada al proyecto.
+4. Ejecuta `npm run dev` para desarrollo o `npm run build` para producir el paquete de despliegue.
 
-## React Compiler
+## Roles
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Todo registro nuevo se crea como `usuario`. Para designar a un integrante del equipo, verifica primero su correo y actualiza su perfil únicamente desde el SQL Editor:
 
-## Expanding the Oxlint configuration
+```sql
+update public.profiles set role = 'admin' where email = 'correo-del-equipo@ejemplo.com';
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+La migración activa RLS, limita el acceso a usuarios autenticados y evita que una persona se asigne permisos administrativos desde el navegador.
