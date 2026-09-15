@@ -1,0 +1,11 @@
+{
+  "name": "ppi-workspace",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix mi-proyecto run dev",
+    "build": "npm --prefix mi-proyecto run build",
+    "preview": "npm --prefix mi-proyecto run preview",
+    "lint": "npm --prefix mi-proyecto run lint",
+    "install:app": "npm --prefix mi-proyecto ci"
+  }
+}
