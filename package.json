@@ -7,5 +7,8 @@
     "preview": "npm --prefix mi-proyecto run preview",
     "lint": "npm --prefix mi-proyecto run lint",
     "install:app": "npm --prefix mi-proyecto ci"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.116.0"
   }
 }

@@ -1,10 +1,10 @@
 .app-shell {
   min-height: 100vh;
-  background: linear-gradient(135deg, #75baff 0%, #74c7fe 45%, #dcefff 100%);
+  background: linear-gradient(135deg, #88bff6 0%, #1f3fe1 45%, #0d86e3 100%);
 }
 
 .navbar {
-  background: linear-gradient(90deg, #0b3d91 0%, #1d6fe7 45%, #6bb8ff 100%);
+  background: linear-gradient(90deg, #0b3d91 0%, #5190f6 45%, #6b7aff 100%);
 }
 
 .navbar-brand {
@@ -47,7 +47,7 @@
 }
 
 .btn-light {
-  color: #0b3d91;
+  color: #8fb8ff;
   font-weight: 600;
 }
 

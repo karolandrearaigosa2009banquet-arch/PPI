@@ -6,7 +6,7 @@ const formatDate = (value) => new Intl.DateTimeFormat('es-CO', { dateStyle: 'med
 
 export default function CrudPqr({ session, profile }) {
   const [items, setItems] = useState([]); const [loading, setLoading] = useState(true); const [type, setType] = useState('Petición'); const [message, setMessage] = useState(''); const [feedback, setFeedback] = useState(null); const [selected, setSelected] = useState(null); const [reply, setReply] = useState(''); const [filter, setFilter] = useState('Todas')
-  const admin = profile.role === 'admin'
+  const admin = profile.role === 'administradores'
   const load = async () => { setLoading(true); let query = supabase.from('pqrs').select('id, user_id, full_name, tipo, mensaje, respuesta, estado, created_at').order('created_at', { ascending: false }); if (!admin) query = query.eq('user_id', session.user.id); const { data, error } = await query; setLoading(false); if (error) setFeedback({ error: 'No fue posible cargar las PQR. Intenta nuevamente.' }); else setItems(data || []) }
   useEffect(() => { load() }, [])
   const visible = useMemo(() => filter === 'Todas' ? items : items.filter((item) => item.estado === filter), [items, filter])
