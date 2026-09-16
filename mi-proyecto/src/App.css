@@ -1,6 +1,6 @@
 .app-shell {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5faff 0%, #ebf7ff 45%, #dcefff 100%);
+  background: linear-gradient(135deg, #75baff 0%, #74c7fe 45%, #dcefff 100%);
 }
 
 .navbar {
@@ -104,5 +104,11 @@
 
   .navbar-nav {
     gap: 0.25rem;
+  }
+
+  body {
+    background: linear-gradient(to right, #5f77ff, #7bb6fe, #86a8e7);
+    height: 100vh;
+    margin: 0;
   }
 }
