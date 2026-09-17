@@ -2,10 +2,10 @@ import { useState } from 'react'
 import { supabase } from './supabaseClient'
 
 const documentTypes = [
-  { value: 'rc', label: 'Registro civil (rc)' },
-  { value: 'ti', label: 'Tarjeta de identidad (ti)' },
-  { value: 'cc', label: 'Cédula de ciudadanía (cc)' },
-  { value: 'ce', label: 'Cédula de extranjería (ce)' },
+  { value: 'rc', label: 'Registro civil (RC)' },
+  { value: 'ti', label: 'Tarjeta de identidad (TI)' },
+  { value: 'cc', label: 'Cédula de ciudadanía (CC)' },
+  { value: 'ce', label: 'Cédula de extranjería (CE)' },
 ]
 const createInitialForm = () => ({
   documentType: documentTypes[0].value,
@@ -41,25 +41,35 @@ export default function Login() {
     if (view === 'signup' && form.password !== form.confirmPassword) return setStatus({ error: 'Las contraseñas no coinciden.' })
     if (view === 'signup' && form.password.length < 8) return setStatus({ error: 'Usa una contraseña de mínimo 8 caracteres.' })
     setBusy(true)
-    const action = view === 'login'
-      ? supabase.auth.signInWithPassword({ email: form.email.trim(), password: form.password })
-      : supabase.auth.signUp({
-        email: form.email.trim(),
-        password: form.password,
-        options: {
-          data: {
-            full_name: `${form.firstName} ${form.lastName}`.trim(),
-            document_type: form.documentType,
-            document_number: documentNumber,
-            first_name: form.firstName.trim(),
-            last_name: form.lastName.trim(),
-            phone,
-            address: form.address.trim(),
+    let data = null
+    let error = null
+    try {
+      const action = view === 'login'
+        ? supabase.auth.signInWithPassword({ email: form.email.trim(), password: form.password })
+        : supabase.auth.signUp({
+          email: form.email.trim(),
+          password: form.password,
+          options: {
+            data: {
+              full_name: `${form.firstName} ${form.lastName}`.trim(),
+              document_type: form.documentType,
+              document_number: documentNumber,
+              first_name: form.firstName.trim(),
+              last_name: form.lastName.trim(),
+              phone,
+              address: form.address.trim(),
+            },
           },
-        },
-      })
-    const { data, error } = await action
-    setBusy(false)
+        })
+      const result = await action
+      data = result.data
+      error = result.error
+    } catch {
+      setStatus({ error: 'Ocurrió un error inesperado. Intenta nuevamente.' })
+      return
+    } finally {
+      setBusy(false)
+    }
     if (error) return setStatus({ error: view === 'login' ? 'No pudimos iniciar sesión. Revisa tu correo y contraseña.' : error.message })
     if (view === 'signup' && !data.session) setStatus({ success: 'Cuenta creada. Revisa tu correo para confirmar tu registro.' })
   }
