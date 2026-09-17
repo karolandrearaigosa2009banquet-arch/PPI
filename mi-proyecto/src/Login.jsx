@@ -64,8 +64,9 @@ export default function Login() {
       const result = await action
       data = result.data
       error = result.error
-    } catch {
-      setStatus({ error: 'Ocurrió un error inesperado. Intenta nuevamente.' })
+    } catch (caughtError) {
+      const message = caughtError instanceof Error && caughtError.message ? caughtError.message : 'Ocurrió un error inesperado. Intenta nuevamente.'
+      setStatus({ error: message })
       return
     } finally {
       setBusy(false)
