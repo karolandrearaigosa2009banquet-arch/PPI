@@ -15,7 +15,7 @@ function App() {
     const load = async (currentSession) => {
       setSession(currentSession)
       if (!currentSession?.user) { setProfile(null); setLoading(false); return }
-      const { data, error } = await supabase.from('profiles').select('user_id, full_name, email, role').eq('user_id', currentSession.user.id).maybeSingle()
+      const { data, error } = await supabase.from('profiles').select('user_id, full_name, email, phone, address, document_type, document_number, role').eq('user_id', currentSession.user.id).maybeSingle()
       if (error) setNotice('No fue posible cargar tu perfil. Verifica la configuración de la base de datos.')
       setProfile(data)
       setLoading(false)
