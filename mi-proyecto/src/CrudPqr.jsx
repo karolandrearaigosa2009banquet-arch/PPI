@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from './supabaseClient'
 
-const types = ['Petición', 'Queja', 'Reclamo']
+const types = [
+  { name: 'Petición', description: 'Úsala para solicitar información, orientación, un trámite o una atención.' },
+  { name: 'Queja', description: 'Úsala para expresar inconformidad por la atención, el servicio o el comportamiento recibido.' },
+  { name: 'Reclamo', description: 'Úsalo para pedir una revisión o solución cuando consideres que un servicio no se prestó correctamente.' },
+]
 const formatDate = (value) => value ? new Intl.DateTimeFormat('es-CO', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : 'Sin fecha'
 
 export default function CrudPqr({ session, profile }) {
@@ -140,13 +144,17 @@ export default function CrudPqr({ session, profile }) {
               {types.map((item) => (
                 <button
                   type="button"
-                  className={type === item ? 'selected' : ''}
-                  onClick={() => setType(item)}
-                  key={item}
+                  className={type === item.name ? 'selected' : ''}
+                  onClick={() => setType(item.name)}
+                  key={item.name}
                 >
-                  {item}
+                  {item.name}
                 </button>
               ))}
+            </div>
+            <div className="pqr-type-explanation" role="status">
+              <strong>¿Qué significa {type}?</strong>
+              <span>{types.find((item) => item.name === type)?.description}</span>
             </div>
 
             <label>

@@ -27,6 +27,7 @@ const initialSignupForm = {
 
 export default function Login() {
   const [view, setView] = useState('login')
+  const [signupStep, setSignupStep] = useState(1)
   const [loginForm, setLoginForm] = useState(initialLoginForm)
   const [signupForm, setSignupForm] = useState(initialSignupForm)
   const [status, setStatus] = useState(null)
@@ -38,6 +39,33 @@ export default function Login() {
 
   const updateSignup = (field) => (event) => {
     setSignupForm({ ...signupForm, [field]: event.target.value })
+  }
+
+  const signupSteps = [
+    { title: 'Documento', description: 'Identifícate para crear tu cuenta.' },
+    { title: 'Datos personales', description: 'Cuéntanos cómo te llamas.' },
+    { title: 'Contacto', description: 'Indica cómo podemos comunicarnos contigo.' },
+    { title: 'Seguridad', description: 'Protege el acceso a tu cuenta.' },
+  ]
+
+  const canContinue = () => {
+    if (signupStep === 1) return Boolean(signupForm.documentType && signupForm.documentNumber.trim())
+    if (signupStep === 2) return Boolean(signupForm.firstName.trim() && signupForm.lastName.trim())
+    if (signupStep === 3) return Boolean(
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signupForm.email.trim())
+      && /^\d{7,15}$/.test(signupForm.phone.replace(/\D/g, ''))
+      && signupForm.address.trim(),
+    )
+    return signupForm.password.length >= 8 && signupForm.password === signupForm.confirmPassword
+  }
+
+  const nextSignupStep = () => {
+    if (!canContinue()) {
+      setStatus({ error: 'Completa correctamente los campos de este paso antes de continuar.' })
+      return
+    }
+    setStatus(null)
+    setSignupStep((step) => Math.min(step + 1, signupSteps.length))
   }
 
   const handleSubmit = async (event) => {
@@ -207,6 +235,7 @@ export default function Login() {
             className={view === 'signup' ? 'active' : ''}
             onClick={() => {
               setView('signup')
+              setSignupStep(1)
               setStatus(null)
             }}
           >
@@ -267,9 +296,18 @@ export default function Login() {
         ) : (
           <form className="form-stack" onSubmit={handleSubmit}>
             <h2>Registrarse</h2>
-            <p className="muted">Completa tus datos para crear tu cuenta.</p>
+            <p className="muted">Completa tus datos paso a paso para crear tu cuenta.</p>
 
-            <label htmlFor="documentType">
+            <ol className="signup-progress" aria-label="Progreso del registro">
+              {signupSteps.map((step, index) => (
+                <li key={step.title} className={signupStep === index + 1 ? 'active' : signupStep > index + 1 ? 'complete' : ''}>
+                  <span>{index + 1}</span>{step.title}
+                </li>
+              ))}
+            </ol>
+            <p className="step-description">Paso {signupStep} de {signupSteps.length}: {signupSteps[signupStep - 1].description}</p>
+
+            {signupStep === 1 && <><label htmlFor="documentType">
               Tipo de documento
               <select
                 id="documentType"
@@ -297,9 +335,9 @@ export default function Login() {
                 placeholder="1234567890"
                 required
               />
-            </label>
+            </label></>}
 
-            <label htmlFor="firstName">
+            {signupStep === 2 && <><label htmlFor="firstName">
               Nombre
               <input
                 id="firstName"
@@ -325,9 +363,9 @@ export default function Login() {
                 placeholder="Tu apellido"
                 required
               />
-            </label>
+            </label></>}
 
-            <label htmlFor="signup-email">
+            {signupStep === 3 && <><label htmlFor="signup-email">
               Correo
               <input
                 id="signup-email"
@@ -367,9 +405,9 @@ export default function Login() {
                 placeholder="Calle 123 # 45-67"
                 required
               />
-            </label>
+            </label></>}
 
-            <label htmlFor="signup-password">
+            {signupStep === 4 && <><label htmlFor="signup-password">
               Contraseña
               <input
                 id="signup-password"
@@ -395,11 +433,16 @@ export default function Login() {
                 placeholder="Repite tu contraseña"
                 required
               />
-            </label>
+            </label></>}
 
-            <button type="submit" className="btn btn-primary" disabled={busy}>
-              {busy ? 'Creando cuenta...' : 'Crear cuenta'}
-            </button>
+            <div className="step-actions">
+              {signupStep > 1 && <button type="button" className="btn btn-ghost" onClick={() => { setStatus(null); setSignupStep((step) => step - 1) }}>Anterior</button>}
+              {signupStep < signupSteps.length ? (
+                <button type="button" className="btn btn-primary" onClick={nextSignupStep}>Siguiente</button>
+              ) : (
+                <button type="submit" className="btn btn-primary" disabled={busy}>{busy ? 'Creando cuenta...' : 'Crear cuenta'}</button>
+              )}
+            </div>
           </form>
         )}
       </div>
