@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL?.trim() || ''
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim() || ''
+const AUTH_REDIRECT_URL = (import.meta.env.VITE_SITE_URL?.trim() || window.location.origin).replace(/\/$/, '')
 const isConfigured = Boolean(
   SUPABASE_URL &&
     SUPABASE_KEY &&
@@ -127,6 +128,7 @@ export function initAuth() {
       email,
       password,
       options: {
+        emailRedirectTo: AUTH_REDIRECT_URL,
         data: {
           full_name: fullName,
         },

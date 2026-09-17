@@ -30,6 +30,8 @@ export default function Login() {
   const [signupStep, setSignupStep] = useState(1)
   const [loginForm, setLoginForm] = useState(initialLoginForm)
   const [signupForm, setSignupForm] = useState(initialSignupForm)
+  const [verificationEmail, setVerificationEmail] = useState('')
+  const [verificationCode, setVerificationCode] = useState('')
   const [status, setStatus] = useState(null)
   const [busy, setBusy] = useState(false)
 
@@ -170,12 +172,49 @@ export default function Login() {
     }
 
     if (!data.session) {
-      setStatus({ success: 'Cuenta creada. Revisa tu correo para confirmar el registro.' })
-      setSignupForm(initialSignupForm)
+      setVerificationEmail(email)
+      setVerificationCode('')
+      setView('verify')
+      setStatus({ success: 'Te enviamos un código de verificación a tu correo.' })
       return
     }
 
     setStatus({ success: 'Cuenta creada correctamente.' })
+  }
+
+  const handleVerify = async (event) => {
+    event.preventDefault()
+    if (!supabase) return
+
+    const token = verificationCode.trim()
+    if (!/^\d{8}$/.test(token)) {
+      setStatus({ error: 'Escribe el código de 8 dígitos que recibiste por correo.' })
+      return
+    }
+
+    setBusy(true)
+    const { data, error } = await supabase.auth.verifyOtp({
+      email: verificationEmail,
+      token,
+      type: 'signup',
+    })
+    setBusy(false)
+
+    if (error || !data.session) {
+      setStatus({ error: error?.message || 'No pudimos verificar el código. Solicita uno nuevo e inténtalo otra vez.' })
+      return
+    }
+
+    setStatus({ success: 'Correo verificado. Ya puedes enviar tu PQR.' })
+    setSignupForm(initialSignupForm)
+  }
+
+  const resendVerificationCode = async () => {
+    if (!supabase || !verificationEmail) return
+    setBusy(true)
+    const { error } = await supabase.auth.resend({ type: 'signup', email: verificationEmail })
+    setBusy(false)
+    setStatus(error ? { error: error.message } : { success: 'Enviamos un nuevo código a tu correo.' })
   }
 
   const handleRecover = async () => {
@@ -291,6 +330,34 @@ export default function Login() {
 
             <button type="button" className="text-button" onClick={handleRecover}>
               ¿Olvidaste tu contraseña?
+            </button>
+          </form>
+        ) : view === 'verify' ? (
+          <form className="form-stack" onSubmit={handleVerify}>
+            <h2>Verifica tu correo</h2>
+            <p className="muted">Escribe el código de 8 dígitos enviado a <strong>{verificationEmail}</strong>. Al verificarlo entrarás directamente a enviar tu PQR.</p>
+            <label htmlFor="verification-code">
+              Código de verificación
+              <input
+                id="verification-code"
+                name="verificationCode"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength="8"
+                value={verificationCode}
+                onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, ''))}
+                placeholder="12345678"
+                required
+              />
+            </label>
+            <button type="submit" className="btn btn-primary" disabled={busy}>
+              {busy ? 'Verificando...' : 'Verificar y continuar'}
+            </button>
+            <button type="button" className="text-button" disabled={busy} onClick={resendVerificationCode}>
+              Reenviar código
+            </button>
+            <button type="button" className="text-button" onClick={() => { setView('signup'); setStatus(null) }}>
+              Volver al registro
             </button>
           </form>
         ) : (
@@ -449,3 +516,4 @@ export default function Login() {
     </section>
   )
 }
+
