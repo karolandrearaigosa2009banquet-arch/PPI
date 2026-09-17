@@ -1,9 +1,14 @@
 import { useState } from 'react'
 import { supabase } from './supabaseClient'
 
-const documentTypes = ['rc', 'ti', 'cc', 'ce']
+const documentTypes = [
+  { value: 'rc', label: 'Registro civil (rc)' },
+  { value: 'ti', label: 'Tarjeta de identidad (ti)' },
+  { value: 'cc', label: 'Cédula de ciudadanía (cc)' },
+  { value: 'ce', label: 'Cédula de extranjería (ce)' },
+]
 const createInitialForm = () => ({
-  documentType: documentTypes[0],
+  documentType: documentTypes[0].value,
   documentNumber: '',
   firstName: '',
   lastName: '',
@@ -29,6 +34,10 @@ export default function Login() {
   const submit = async (event) => {
     event.preventDefault()
     setStatus(null)
+    const documentNumber = form.documentNumber.replace(/\D/g, '')
+    const phone = form.phone.replace(/\D/g, '')
+    if (view === 'signup' && (documentNumber.length < 5 || documentNumber.length > 20)) return setStatus({ error: 'Ingresa un número de documento válido.' })
+    if (view === 'signup' && (phone.length < 7 || phone.length > 15)) return setStatus({ error: 'Ingresa un número de teléfono válido.' })
     if (view === 'signup' && form.password !== form.confirmPassword) return setStatus({ error: 'Las contraseñas no coinciden.' })
     if (view === 'signup' && form.password.length < 8) return setStatus({ error: 'Usa una contraseña de mínimo 8 caracteres.' })
     setBusy(true)
@@ -41,10 +50,10 @@ export default function Login() {
           data: {
             full_name: `${form.firstName} ${form.lastName}`.trim(),
             document_type: form.documentType,
-            document_number: form.documentNumber.trim(),
+            document_number: documentNumber,
             first_name: form.firstName.trim(),
             last_name: form.lastName.trim(),
-            phone: form.phone.trim(),
+            phone,
             address: form.address.trim(),
           },
         },
@@ -65,12 +74,12 @@ export default function Login() {
     <div className="welcome-panel"><span className="kicker">Centro de Salud Santo Domingo Savio I</span><h1>Tu voz también cuida.</h1><p>Radica, consulta y recibe respuesta a tus peticiones, quejas y reclamos en un espacio claro y protegido.</p><div className="feature-list"><span>✓ Registro y seguimiento en línea</span><span>✓ Respuestas desde el equipo de atención</span><span>✓ Información tratada de forma segura</span></div></div>
     <div className="auth-card"><div className="switcher"><button type="button" className={view === 'login' ? 'active' : ''} onClick={() => switchView('login')}>Inicio de sesión</button><button type="button" className={view === 'signup' ? 'active' : ''} onClick={() => switchView('signup')}>Registrarse</button></div><h2>{view === 'login' ? 'Bienvenido de nuevo' : 'Crea tu cuenta'}</h2><p className="muted">{view === 'login' ? 'Ingresa para consultar tus trámites.' : 'Solo te tomará un minuto.'}</p>
       <form onSubmit={submit} className="form-stack">{view === 'signup' && <>
-        <label htmlFor="register-document-type">Tipo de documento<select id="register-document-type" name="documentType" value={form.documentType} onChange={set} required>{documentTypes.map((type) => <option key={type} value={type}>{type}</option>)}</select></label>
-        <label htmlFor="register-document-number">Número de documento<input id="register-document-number" name="documentNumber" value={form.documentNumber} onChange={set} inputMode="numeric" pattern="\\d{5,20}" required placeholder="Ej. 123456789" /></label>
+        <label htmlFor="register-document-type">Tipo de documento<select id="register-document-type" name="documentType" value={form.documentType} onChange={set} required>{documentTypes.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}</select></label>
+        <label htmlFor="register-document-number">Número de documento<input id="register-document-number" name="documentNumber" value={form.documentNumber} onChange={set} inputMode="numeric" required placeholder="Ej. 123456789" /></label>
         <label htmlFor="register-first-name">Nombre<input id="register-first-name" name="firstName" value={form.firstName} onChange={set} autoComplete="given-name" required placeholder="Ej. Ana" /></label>
         <label htmlFor="register-last-name">Apellido<input id="register-last-name" name="lastName" value={form.lastName} onChange={set} autoComplete="family-name" required placeholder="Ej. Gómez" /></label>
         <label htmlFor="register-email">Correo<input id="register-email" name="email" type="email" value={form.email} onChange={set} autoComplete="email" required placeholder="nombre@correo.com" /></label>
-        <label htmlFor="register-phone">Teléfono<input id="register-phone" name="phone" type="tel" value={form.phone} onChange={set} autoComplete="tel" inputMode="numeric" pattern="\\d{7,15}" required placeholder="Ej. 3001234567" /></label>
+        <label htmlFor="register-phone">Teléfono<input id="register-phone" name="phone" type="tel" value={form.phone} onChange={set} autoComplete="tel" inputMode="tel" required placeholder="Ej. +57 300 123 4567" /></label>
         <label htmlFor="register-address">Dirección<input id="register-address" name="address" value={form.address} onChange={set} autoComplete="street-address" required placeholder="Ej. Calle 10 # 20-30" /></label>
       </>}
         {view === 'login' && <label htmlFor="login-email">Correo electrónico<input id="login-email" name="email" type="email" value={form.email} onChange={set} autoComplete="email" required placeholder="nombre@correo.com" /></label>}
