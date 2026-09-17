@@ -2,23 +2,29 @@ import { useState } from 'react'
 import { supabase } from './supabaseClient'
 
 const documentTypes = ['rc', 'ti', 'cc', 'ce']
+const createInitialForm = () => ({
+  documentType: documentTypes[0],
+  documentNumber: '',
+  firstName: '',
+  lastName: '',
+  email: '',
+  phone: '',
+  address: '',
+  password: '',
+  confirmPassword: '',
+})
 
 export default function Login() {
   const [view, setView] = useState('login')
-  const [form, setForm] = useState({
-    documentType: documentTypes[0],
-    documentNumber: '',
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    address: '',
-    password: '',
-    confirmPassword: '',
-  })
+  const [form, setForm] = useState(createInitialForm)
   const [status, setStatus] = useState(null)
   const [busy, setBusy] = useState(false)
   const set = (event) => setForm((current) => ({ ...current, [event.target.name]: event.target.value }))
+  const switchView = (nextView) => {
+    setView(nextView)
+    setStatus(null)
+    setForm(createInitialForm())
+  }
 
   const submit = async (event) => {
     event.preventDefault()
@@ -57,7 +63,7 @@ export default function Login() {
 
   return <section className="auth-layout">
     <div className="welcome-panel"><span className="kicker">Centro de Salud Santo Domingo Savio I</span><h1>Tu voz también cuida.</h1><p>Radica, consulta y recibe respuesta a tus peticiones, quejas y reclamos en un espacio claro y protegido.</p><div className="feature-list"><span>✓ Registro y seguimiento en línea</span><span>✓ Respuestas desde el equipo de atención</span><span>✓ Información tratada de forma segura</span></div></div>
-    <div className="auth-card"><div className="switcher"><button type="button" className={view === 'login' ? 'active' : ''} onClick={() => { setView('login'); setStatus(null) }}>Inicio de sesión</button><button type="button" className={view === 'signup' ? 'active' : ''} onClick={() => { setView('signup'); setStatus(null) }}>Registrarse</button></div><h2>{view === 'login' ? 'Bienvenido de nuevo' : 'Crea tu cuenta'}</h2><p className="muted">{view === 'login' ? 'Ingresa para consultar tus trámites.' : 'Solo te tomará un minuto.'}</p>
+    <div className="auth-card"><div className="switcher"><button type="button" className={view === 'login' ? 'active' : ''} onClick={() => switchView('login')}>Inicio de sesión</button><button type="button" className={view === 'signup' ? 'active' : ''} onClick={() => switchView('signup')}>Registrarse</button></div><h2>{view === 'login' ? 'Bienvenido de nuevo' : 'Crea tu cuenta'}</h2><p className="muted">{view === 'login' ? 'Ingresa para consultar tus trámites.' : 'Solo te tomará un minuto.'}</p>
       <form onSubmit={submit} className="form-stack">{view === 'signup' && <>
         <label htmlFor="register-document-type">Tipo de documento<select id="register-document-type" name="documentType" value={form.documentType} onChange={set} required>{documentTypes.map((type) => <option key={type} value={type}>{type}</option>)}</select></label>
         <label htmlFor="register-document-number">Número de documento<input id="register-document-number" name="documentNumber" value={form.documentNumber} onChange={set} inputMode="numeric" pattern="\\d{5,20}" required placeholder="Ej. 123456789" /></label>
