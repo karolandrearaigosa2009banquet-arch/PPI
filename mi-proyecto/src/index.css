@@ -23,7 +23,7 @@ button { cursor: pointer; }
 .auth-card { max-width: 470px; width: 100%; margin: auto; padding: 42px; }
 .auth-card h2, .content-card h2 { font-family: 'Plus Jakarta Sans', sans-serif; margin: 19px 0 6px; font-size: 1.8rem; color: #12335f; letter-spacing: -.03em; }
 .muted { color: #4973a6; margin-top: 0; }
-.switcher { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid #c6dff8; }
+.switcher { display: grid; grid-template-columns: repeat(3, 1fr); border-bottom: 1px solid #c6dff8; }
 .switcher button, .tabs button, .filters button { border: 0; background: transparent; padding: 12px; color: #4973a6; font-weight: 700; }
 .switcher .active, .tabs .active { color: #0756b2; border-bottom: 3px solid #237ad6; }
 .form-stack { display: grid; gap: 17px; margin-top: 26px; }
@@ -140,3 +140,12 @@ footer { text-align: center; color: #4973a6; font-size: .78rem; padding: 30px 0 
 /* Foto del centro de salud difuminada dentro del panel azul */
 .welcome-panel::before { content: ''; position: absolute; inset: 0; z-index: 0; background: url('./assets/centro-salud.webp') 62% 55% / cover no-repeat; opacity: .62; filter: saturate(1.15) contrast(1.05); -webkit-mask-image: linear-gradient(112deg, transparent 12%, #000 72%); mask-image: linear-gradient(112deg, transparent 12%, #000 72%); pointer-events: none; }
 .welcome-panel::after { content: ''; position: absolute; inset: 0; z-index: 0; background: linear-gradient(180deg, #052f73cc 0%, #052f7300 30%, #052f7300 52%, #052f73e6 100%), linear-gradient(100deg, #052f73d9 0%, #1466c340 62%, #55a6f21f 100%); mix-blend-mode: normal; pointer-events: none; }
+
+/* Pestaña de códigos y tipo de cuenta */
+.switcher button { font-size: .9rem; }
+.code-option { display: block; width: 100%; text-align: left; padding: 16px 18px; border: 1px solid #cfe0f5; border-radius: 16px; background: #f4f9ff; cursor: pointer; font: inherit; transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease; }
+.code-option:hover { transform: translateY(-2px); border-color: #237ad6; box-shadow: 0 10px 24px #1466c322; }
+.code-option b { display: block; color: #0a3a82; font-size: 1rem; margin-bottom: 4px; }
+.code-option span { display: block; color: #4973a6; font-size: .88rem; line-height: 1.45; }
+.account-type-box { display: grid; gap: 12px; padding: 14px; border-radius: 16px; background: #eef6ff; border: 1px solid #cfe0f5; }
+@media (max-width: 420px) { .switcher button { font-size: .8rem; padding: 10px 4px; } }

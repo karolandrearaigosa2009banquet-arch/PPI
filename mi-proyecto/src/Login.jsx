@@ -95,16 +95,14 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
   ]
 
   const canContinue = () => {
-    if (signupStep === 1) return Boolean(signupForm.documentType && signupForm.documentNumber.trim())
+    if (signupStep === 1) return Boolean(signupForm.documentType && signupForm.documentNumber.trim() && (signupForm.accountType !== 'admin' || signupForm.adminCode.trim()))
     if (signupStep === 2) return Boolean(signupForm.firstName.trim() && signupForm.lastName.trim())
     if (signupStep === 3) return Boolean(
       /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signupForm.email.trim())
       && /^\d{7,15}$/.test(signupForm.phone.replace(/\D/g, ''))
       && signupForm.address.trim(),
     )
-    return signupForm.password.length >= 8
-      && signupForm.password === signupForm.confirmPassword
-      && (signupForm.accountType !== 'admin' || Boolean(signupForm.adminCode.trim()))
+    return signupForm.password.length >= 8 && signupForm.password === signupForm.confirmPassword
   }
 
   const nextSignupStep = () => {
@@ -269,7 +267,7 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
 
     setBusy(true)
     const { data, error } = await supabase.auth.verifyOtp({
-      email: verificationEmail,
+      email: verificationEmail.trim(),
       token,
       type: 'signup',
     })
@@ -462,6 +460,16 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
           >
             Registrarse
           </button>
+          <button
+            type="button"
+            className={['codes', 'verify', 'recover-code'].includes(view) ? 'active' : ''}
+            onClick={() => {
+              setView('codes')
+              setStatus(null)
+            }}
+          >
+            Tengo un código
+          </button>
         </div>
 
         {status && (
@@ -574,7 +582,20 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
         ) : view === 'recover-code' ? (
           <form className="form-stack" onSubmit={handleRecoverCode}>
             <h2>Código de recuperación</h2>
-            <p className="muted">Escribe el código enviado a <strong>{recoverEmail}</strong>.</p>
+            <p className="muted">Escribe tu correo y el código que te enviamos para crear una nueva contraseña.</p>
+            <label htmlFor="recover-code-email">
+              Correo electrónico
+              <input
+                id="recover-code-email"
+                name="recoverCodeEmail"
+                type="email"
+                autoComplete="email"
+                value={recoverEmail}
+                onChange={(event) => setRecoverEmail(event.target.value)}
+                placeholder="correo@ejemplo.com"
+                required
+              />
+            </label>
             <label htmlFor="recover-code">
               Código de recuperación
               <input
@@ -595,8 +616,8 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
             <button type="button" className="text-button" disabled={busy || cooldown > 0} onClick={resendRecoveryCode}>
               {cooldown > 0 ? `Reenviar código (${cooldown} s)` : 'Reenviar código'}
             </button>
-            <button type="button" className="text-button" onClick={() => { setView('recover'); setStatus(null) }}>
-              Cambiar correo
+            <button type="button" className="text-button" onClick={() => { setView('codes'); setStatus(null) }}>
+              Elegir otro tipo de código
             </button>
           </form>
         ) : view === 'reset' ? (
@@ -636,10 +657,43 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
               Cancelar
             </button>
           </form>
+        ) : view === 'codes' ? (
+          <div className="form-stack">
+            <h2>Ingresar un código</h2>
+            <p className="muted">Elige para qué es el código que recibiste.</p>
+
+            <button type="button" className="code-option" onClick={() => { setVerificationEmail(loginForm.email.trim() || signupForm.email.trim()); setVerificationCode(''); setStatus(null); setView('verify') }}>
+              <b>Código de verificación de registro</b>
+              <span>Para usuarios y administradores que acaban de crear su cuenta. Llega a tu correo.</span>
+            </button>
+
+            <button type="button" className="code-option" onClick={() => { setRecoverEmail(loginForm.email.trim()); setRecoverCode(''); setStatus(null); setView('recover-code') }}>
+              <b>Código de recuperación de contraseña</b>
+              <span>Si olvidaste tu contraseña y pediste un código para crear una nueva.</span>
+            </button>
+
+            <button type="button" className="code-option" onClick={() => { setSignupForm((form) => ({ ...form, accountType: 'admin' })); setSignupStep(1); setStatus(null); setView('signup') }}>
+              <b>Código de administrador</b>
+              <span>Para crear una cuenta de administración. Se escribe en el primer paso del registro.</span>
+            </button>
+          </div>
         ) : view === 'verify' ? (
           <form className="form-stack" onSubmit={handleVerify}>
             <h2>Verifica tu correo</h2>
-            <p className="muted">Escribe el código de 8 dígitos enviado a <strong>{verificationEmail}</strong>. Al verificarlo entrarás directamente a enviar tu PQR.</p>
+            <p className="muted">Escribe tu correo y el código de 8 dígitos que te enviamos. Al verificarlo entrarás directamente a tu cuenta.</p>
+            <label htmlFor="verification-email">
+              Correo electrónico
+              <input
+                id="verification-email"
+                name="verificationEmail"
+                type="email"
+                autoComplete="email"
+                value={verificationEmail}
+                onChange={(event) => setVerificationEmail(event.target.value)}
+                placeholder="correo@ejemplo.com"
+                required
+              />
+            </label>
             <label htmlFor="verification-code">
               Código de verificación
               <input
@@ -660,8 +714,8 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
             <button type="button" className="text-button" disabled={busy} onClick={resendVerificationCode}>
               Reenviar código
             </button>
-            <button type="button" className="text-button" onClick={() => { setView('signup'); setStatus(null) }}>
-              Volver al registro
+            <button type="button" className="text-button" onClick={() => { setView('codes'); setStatus(null) }}>
+              Elegir otro tipo de código
             </button>
           </form>
         ) : (
@@ -678,7 +732,32 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
             </ol>
             <p className="step-description">Paso {signupStep} de {signupSteps.length}: {signupSteps[signupStep - 1].description}</p>
 
-            {signupStep === 1 && <><label htmlFor="documentType">
+            {signupStep === 1 && <><div className="account-type-box">
+              <label htmlFor="accountType">
+                Tipo de cuenta
+                <select id="accountType" name="accountType" value={signupForm.accountType} onChange={updateSignup('accountType')}>
+                  <option value="user">Usuario</option>
+                  <option value="admin">Administrador</option>
+                </select>
+              </label>
+              {signupForm.accountType === 'admin' && (
+                <label htmlFor="adminCode">
+                  Código de administrador
+                  <input
+                    id="adminCode"
+                    name="adminCode"
+                    type="password"
+                    autoComplete="off"
+                    value={signupForm.adminCode}
+                    onChange={updateSignup('adminCode')}
+                    placeholder="Código entregado por la institución"
+                    required
+                  />
+                </label>
+              )}
+            </div>
+
+            <label htmlFor="documentType">
               Tipo de documento
               <select
                 id="documentType"
@@ -805,35 +884,7 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
                 required
               />
             </label>
-
-            <label htmlFor="accountType">
-              Tipo de cuenta
-              <select
-                id="accountType"
-                name="accountType"
-                value={signupForm.accountType}
-                onChange={updateSignup('accountType')}
-              >
-                <option value="user">Usuario</option>
-                <option value="admin">Administrador</option>
-              </select>
-            </label>
-
-            {signupForm.accountType === 'admin' && (
-              <label htmlFor="adminCode">
-                Código de administrador
-                <input
-                  id="adminCode"
-                  name="adminCode"
-                  type="password"
-                  autoComplete="off"
-                  value={signupForm.adminCode}
-                  onChange={updateSignup('adminCode')}
-                  placeholder="Código entregado por la institución"
-                  required
-                />
-              </label>
-            )}</>}
+</>}
 
             <div className="step-actions">
               {signupStep > 1 && <button type="button" className="btn btn-ghost" onClick={() => { setStatus(null); setSignupStep((step) => step - 1) }}>Anterior</button>}
