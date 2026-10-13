@@ -136,3 +136,7 @@ footer { text-align: center; color: #4973a6; font-size: .78rem; padding: 30px 0 
 @keyframes pulse-draw { 0% { stroke-dashoffset: 520; } 55%, 100% { stroke-dashoffset: 0; } }
 @media (prefers-reduced-motion: reduce) { .welcome-panel .orb, .welcome-panel .pulse-line { animation: none; } .welcome-panel .pulse-line { stroke-dashoffset: 0; } }
 @media (max-width: 780px) { .welcome-panel { padding: 44px 7%; } .welcome-panel .welcome-cross { width: 100px; } .process-card li span { font-size: .75rem; } }
+
+/* Foto del centro de salud difuminada dentro del panel azul */
+.welcome-panel::before { content: ''; position: absolute; inset: 0; z-index: 0; background: url('./assets/centro-salud.webp') 62% 55% / cover no-repeat; opacity: .62; filter: saturate(1.15) contrast(1.05); -webkit-mask-image: linear-gradient(112deg, transparent 12%, #000 72%); mask-image: linear-gradient(112deg, transparent 12%, #000 72%); pointer-events: none; }
+.welcome-panel::after { content: ''; position: absolute; inset: 0; z-index: 0; background: linear-gradient(180deg, #052f73cc 0%, #052f7300 30%, #052f7300 52%, #052f73e6 100%), linear-gradient(100deg, #052f73d9 0%, #1466c340 62%, #55a6f21f 100%); mix-blend-mode: normal; pointer-events: none; }
