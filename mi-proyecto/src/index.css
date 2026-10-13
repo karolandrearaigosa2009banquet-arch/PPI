@@ -116,3 +116,23 @@ footer { text-align: center; color: #4973a6; font-size: .78rem; padding: 30px 0 
 .search-input{width:100%;margin:0 0 1rem;padding:.7rem .9rem;border:1px solid #cbd5e1;border-radius:10px;font:inherit}
 .section-switcher{flex-wrap:wrap}
 .forgot-button { width: 100%; margin-top: 12px; }
+
+/* Panel de bienvenida con efecto de vidrio y difuminado */
+.welcome-panel { position: relative; overflow: hidden; isolation: isolate; background: radial-gradient(120% 90% at 0% 0%, #0a4aa8 0%, transparent 55%), linear-gradient(140deg, #052f73, #1466c3 58%, #55a6f2); }
+.welcome-panel > * { position: relative; z-index: 1; }
+.welcome-panel .orb { position: absolute; z-index: 0; border-radius: 50%; filter: blur(46px); opacity: .55; animation: orb-float 11s ease-in-out infinite; pointer-events: none; }
+.welcome-panel .orb-a { width: 280px; height: 280px; top: -70px; right: -60px; background: radial-gradient(circle, #9fd0ff, #3d8fe6 70%); }
+.welcome-panel .orb-b { width: 240px; height: 240px; bottom: -60px; left: -50px; background: radial-gradient(circle, #6fd3ff, #1b6fd1 70%); animation-delay: -5s; }
+.welcome-panel .welcome-cross { position: absolute; z-index: 0; right: 6%; top: 8%; width: 150px; fill: #ffffff14; transform: rotate(12deg); pointer-events: none; }
+.welcome-panel .feature-list span { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 16px; background: #ffffff1f; border: 1px solid #ffffff3d; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-shadow: 0 10px 28px #04265c33; transition: transform .2s ease, background .2s ease; }
+.welcome-panel .feature-list span:hover { transform: translateX(6px); background: #ffffff2e; }
+.welcome-panel .feature-list i { flex: none; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: #fff; color: #0756b2; font-style: normal; font-size: .85rem; font-weight: 800; }
+.process-card { list-style: none; margin: 28px 0 0; padding: 16px 14px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; max-width: 480px; border-radius: 18px; background: #ffffff17; border: 1px solid #ffffff38; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+.process-card li { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; font-size: .82rem; font-weight: 600; color: #f2f8ff; position: relative; }
+.process-card li b { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, #fff, #cfe6ff); color: #0756b2; font-size: .95rem; box-shadow: 0 6px 14px #04265c40; }
+.process-card li:not(:last-child)::after { content: ''; position: absolute; top: 17px; left: calc(50% + 24px); width: calc(100% - 48px); border-top: 2px dashed #ffffff66; }
+.welcome-panel .pulse-line { width: 100%; max-width: 480px; height: 44px; margin-top: 22px; fill: none; stroke: #ffffffa6; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 520; stroke-dashoffset: 520; animation: pulse-draw 3.2s ease-in-out infinite; }
+@keyframes orb-float { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(18px, -22px); } }
+@keyframes pulse-draw { 0% { stroke-dashoffset: 520; } 55%, 100% { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) { .welcome-panel .orb, .welcome-panel .pulse-line { animation: none; } .welcome-panel .pulse-line { stroke-dashoffset: 0; } }
+@media (max-width: 780px) { .welcome-panel { padding: 44px 7%; } .welcome-panel .welcome-cross { width: 100px; } .process-card li span { font-size: .75rem; } }

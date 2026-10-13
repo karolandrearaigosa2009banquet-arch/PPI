@@ -139,6 +139,17 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
       setBusy(false)
 
       if (error) {
+        if (error.code === 'email_not_confirmed' || /not confirmed/i.test(String(error.message))) {
+          // Cuenta creada pero sin verificar: pedimos el código en lugar de mostrar un error genérico.
+          setVerificationEmail(email)
+          setVerificationCode('')
+          setView('verify')
+          const { error: resendError } = await supabase.auth.resend({ type: 'signup', email })
+          const waiting = resendError && /after (\d+) seconds?/i.test(String(resendError.message))
+          if (resendError && !waiting) setStatus({ error: friendlyError(resendError) })
+          else setStatus({ success: waiting ? 'Tu correo aún no está verificado. Ya te enviamos un código hace poco: escríbelo aquí.' : 'Tu correo aún no está verificado. Te enviamos un código: escríbelo aquí.' })
+          return
+        }
         setStatus({ error: 'No pudimos iniciar sesión. Revisa tu correo y contraseña.' })
         return
       }
@@ -398,17 +409,34 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
   return (
     <section className="auth-layout">
       <div className="welcome-panel">
+        <span className="orb orb-a" aria-hidden="true" />
+        <span className="orb orb-b" aria-hidden="true" />
+        <svg className="welcome-cross" viewBox="0 0 100 100" aria-hidden="true">
+          <path d="M38 6h24v32h32v24H62v32H38V62H6V38h32z" />
+        </svg>
+
         <span className="kicker">Centro de Salud Santo Domingo Savio I</span>
         <h1>Tu voz también cuida.</h1>
         <p>
           Radica, consulta y recibe respuesta a tus peticiones, quejas y reclamos en un
           solo lugar.
         </p>
+
         <div className="feature-list">
-          <span>✓ Atención ágil y segura</span>
-          <span>✓ Seguimiento claro de cada caso</span>
-          <span>✓ Comunicación directa con la institución</span>
+          <span><i aria-hidden="true">✓</i> Atención ágil y segura</span>
+          <span><i aria-hidden="true">✓</i> Seguimiento claro de cada caso</span>
+          <span><i aria-hidden="true">✓</i> Comunicación directa con la institución</span>
         </div>
+
+        <ol className="process-card" aria-label="Cómo funciona">
+          <li><b>1</b><span>Radica tu PQR</span></li>
+          <li><b>2</b><span>La revisamos</span></li>
+          <li><b>3</b><span>Recibes respuesta</span></li>
+        </ol>
+
+        <svg className="pulse-line" viewBox="0 0 400 60" preserveAspectRatio="none" aria-hidden="true">
+          <polyline points="0,30 110,30 135,30 150,8 168,52 186,18 200,30 400,30" />
+        </svg>
       </div>
 
       <div className="auth-card">
@@ -484,6 +512,24 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
 
             <button type="button" className="btn btn-secondary forgot-button" onClick={() => { setRecoverEmail(loginForm.email); setStatus(null); setView('recover') }}>
               ¿Olvidaste tu contraseña?
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-ghost forgot-button"
+              onClick={() => {
+                const email = loginForm.email.trim()
+                if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                  setStatus({ error: 'Escribe tu correo en el campo de arriba para ingresar tu código.' })
+                  return
+                }
+                setVerificationEmail(email)
+                setVerificationCode('')
+                setStatus(null)
+                setView('verify')
+              }}
+            >
+              Ya tengo un código de verificación
             </button>
           </form>
         ) : view === 'recover' ? (
