@@ -8,6 +8,9 @@ export const getSupabaseRedirectUrl = () => {
   return configuredUrl.replace(/\/$/, '')
 }
 
+// URL pública de la app (incluye /PPI/ en GitHub Pages y / en desarrollo).
+export const getAppUrl = () => `${window.location.origin}${import.meta.env.BASE_URL}`
+
 export const isSupabaseConfigured = Boolean(url && key)
 export const supabase = isSupabaseConfigured
   ? createClient(url, key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } })

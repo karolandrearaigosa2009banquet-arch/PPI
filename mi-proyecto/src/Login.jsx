@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { supabase } from './supabaseClient'
+import { useEffect, useState } from 'react'
+import { getAppUrl, supabase } from './supabaseClient'
 
 const DOCUMENT_OPTIONS = [
   { value: 'rc', label: 'RC' },
@@ -25,7 +25,7 @@ const initialSignupForm = {
   confirmPassword: '',
 }
 
-export default function Login() {
+export default function Login({ recovering = false, onRecoveryStart = () => {}, onRecoveryDone = () => {} }) {
   const [view, setView] = useState('login')
   const [signupStep, setSignupStep] = useState(1)
   const [loginForm, setLoginForm] = useState(initialLoginForm)
@@ -34,6 +34,15 @@ export default function Login() {
   const [verificationCode, setVerificationCode] = useState('')
   const [status, setStatus] = useState(null)
   const [busy, setBusy] = useState(false)
+  const [recoverEmail, setRecoverEmail] = useState('')
+  const [recoverCode, setRecoverCode] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmNewPassword, setConfirmNewPassword] = useState('')
+
+  // Si el usuario llega desde el enlace del correo de recuperación, pedimos la nueva contraseña.
+  useEffect(() => {
+    if (recovering) setView('reset')
+  }, [recovering])
 
   const updateLogin = (field) => (event) => {
     setLoginForm({ ...loginForm, [field]: event.target.value })
@@ -217,28 +226,107 @@ export default function Login() {
     setStatus(error ? { error: error.message } : { success: 'Enviamos un nuevo código a tu correo.' })
   }
 
-  const handleRecover = async () => {
+  const sendRecoveryCode = async () => {
+    const email = recoverEmail.trim()
     if (!supabase) {
       setStatus({ error: 'La configuración de Supabase no está lista.' })
-      return
+      return false
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setStatus({ error: 'Escribe un correo válido para recibir el código.' })
+      return false
     }
 
-    if (!loginForm.email.trim()) {
-      setStatus({ error: 'Escribe tu correo para recibir el enlace de recuperación.' })
+    setBusy(true)
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: getAppUrl() })
+    setBusy(false)
+
+    if (error) {
+      setStatus({ error: error.message })
+      return false
+    }
+    return true
+  }
+
+  const handleRecover = async (event) => {
+    event.preventDefault()
+    setStatus(null)
+    if (!(await sendRecoveryCode())) return
+    setRecoverCode('')
+    setView('recover-code')
+    setStatus({ success: 'Si existe una cuenta con ese correo, te enviamos un código de recuperación. Revisa también la carpeta de spam.' })
+  }
+
+  const resendRecoveryCode = async () => {
+    setStatus(null)
+    if (await sendRecoveryCode()) setStatus({ success: 'Enviamos un nuevo código a tu correo.' })
+  }
+
+  const handleRecoverCode = async (event) => {
+    event.preventDefault()
+    if (!supabase) return
+
+    const token = recoverCode.trim()
+    if (!/^\d{6,8}$/.test(token)) {
+      setStatus({ error: 'Escribe el código numérico que recibiste por correo.' })
       return
     }
 
     setBusy(true)
-    const { error } = await supabase.auth.resetPasswordForEmail(loginForm.email.trim(), {
-      redirectTo: window.location.origin,
+    onRecoveryStart()
+    const { data, error } = await supabase.auth.verifyOtp({
+      email: recoverEmail.trim(),
+      token,
+      type: 'recovery',
     })
     setBusy(false)
 
-    setStatus(
-      error
-        ? { error: error.message }
-        : { success: 'Si existe una cuenta con ese correo, recibirás un enlace de recuperación.' },
-    )
+    if (error || !data.session) {
+      onRecoveryDone()
+      setStatus({ error: 'El código no es válido o ya venció. Solicita uno nuevo e inténtalo otra vez.' })
+      return
+    }
+
+    setView('reset')
+    setStatus({ success: 'Código correcto. Crea tu nueva contraseña.' })
+  }
+
+  const handleResetPassword = async (event) => {
+    event.preventDefault()
+    if (!supabase) return
+
+    if (newPassword.length < 8) {
+      setStatus({ error: 'Usa una contraseña de mínimo 8 caracteres.' })
+      return
+    }
+    if (newPassword !== confirmNewPassword) {
+      setStatus({ error: 'Las contraseñas no coinciden.' })
+      return
+    }
+
+    setBusy(true)
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    setBusy(false)
+
+    if (error) {
+      setStatus({ error: error.message })
+      return
+    }
+
+    setNewPassword('')
+    setConfirmNewPassword('')
+    setRecoverCode('')
+    setView('login')
+    onRecoveryDone('Contraseña actualizada correctamente.')
+  }
+
+  const cancelRecovery = async () => {
+    if (supabase) await supabase.auth.signOut()
+    setNewPassword('')
+    setConfirmNewPassword('')
+    setStatus(null)
+    setView('login')
+    onRecoveryDone()
   }
 
   return (
@@ -328,8 +416,97 @@ export default function Login() {
               {busy ? 'Procesando...' : 'Iniciar sesión'}
             </button>
 
-            <button type="button" className="text-button" onClick={handleRecover}>
+            <button type="button" className="text-button" onClick={() => { setRecoverEmail(loginForm.email); setStatus(null); setView('recover') }}>
               ¿Olvidaste tu contraseña?
+            </button>
+          </form>
+        ) : view === 'recover' ? (
+          <form className="form-stack" onSubmit={handleRecover}>
+            <h2>Recupera tu cuenta</h2>
+            <p className="muted">Escribe tu correo y te enviaremos un código para crear una nueva contraseña.</p>
+            <label htmlFor="recover-email">
+              Correo electrónico
+              <input
+                id="recover-email"
+                name="recoverEmail"
+                type="email"
+                autoComplete="email"
+                value={recoverEmail}
+                onChange={(event) => setRecoverEmail(event.target.value)}
+                placeholder="correo@ejemplo.com"
+                required
+              />
+            </label>
+            <button type="submit" className="btn btn-primary" disabled={busy}>
+              {busy ? 'Enviando...' : 'Enviar código'}
+            </button>
+            <button type="button" className="text-button" onClick={() => { setView('login'); setStatus(null) }}>
+              Volver al inicio de sesión
+            </button>
+          </form>
+        ) : view === 'recover-code' ? (
+          <form className="form-stack" onSubmit={handleRecoverCode}>
+            <h2>Código de recuperación</h2>
+            <p className="muted">Escribe el código enviado a <strong>{recoverEmail}</strong>.</p>
+            <label htmlFor="recover-code">
+              Código de recuperación
+              <input
+                id="recover-code"
+                name="recoverCode"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength="8"
+                value={recoverCode}
+                onChange={(event) => setRecoverCode(event.target.value.replace(/\D/g, ''))}
+                placeholder="12345678"
+                required
+              />
+            </label>
+            <button type="submit" className="btn btn-primary" disabled={busy}>
+              {busy ? 'Verificando...' : 'Verificar código'}
+            </button>
+            <button type="button" className="text-button" disabled={busy} onClick={resendRecoveryCode}>
+              Reenviar código
+            </button>
+            <button type="button" className="text-button" onClick={() => { setView('recover'); setStatus(null) }}>
+              Cambiar correo
+            </button>
+          </form>
+        ) : view === 'reset' ? (
+          <form className="form-stack" onSubmit={handleResetPassword}>
+            <h2>Nueva contraseña</h2>
+            <p className="muted">Crea una contraseña nueva para tu cuenta.</p>
+            <label htmlFor="new-password">
+              Nueva contraseña
+              <input
+                id="new-password"
+                name="newPassword"
+                type="password"
+                autoComplete="new-password"
+                value={newPassword}
+                onChange={(event) => setNewPassword(event.target.value)}
+                placeholder="Mínimo 8 caracteres"
+                required
+              />
+            </label>
+            <label htmlFor="confirm-new-password">
+              Confirmar nueva contraseña
+              <input
+                id="confirm-new-password"
+                name="confirmNewPassword"
+                type="password"
+                autoComplete="new-password"
+                value={confirmNewPassword}
+                onChange={(event) => setConfirmNewPassword(event.target.value)}
+                placeholder="Repite tu contraseña"
+                required
+              />
+            </label>
+            <button type="submit" className="btn btn-primary" disabled={busy}>
+              {busy ? 'Guardando...' : 'Guardar contraseña'}
+            </button>
+            <button type="button" className="text-button" onClick={cancelRecovery}>
+              Cancelar
             </button>
           </form>
         ) : view === 'verify' ? (

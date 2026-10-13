@@ -9,6 +9,7 @@ function App() {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [notice, setNotice] = useState('')
+  const [recovering, setRecovering] = useState(false)
 
   useEffect(() => {
     if (!supabase) { setLoading(false); return undefined }
@@ -21,7 +22,10 @@ function App() {
       setLoading(false)
     }
     supabase.auth.getSession().then(({ data }) => load(data.session))
-    const { data: subscription } = supabase.auth.onAuthStateChange((_event, currentSession) => load(currentSession))
+    const { data: subscription } = supabase.auth.onAuthStateChange((event, currentSession) => {
+      if (event === 'PASSWORD_RECOVERY') setRecovering(true)
+      load(currentSession)
+    })
     return () => subscription.subscription.unsubscribe()
   }, [])
 
@@ -29,7 +33,7 @@ function App() {
 
   return <div className="app-shell">
     <header className="site-header"><a className="brand" href="#inicio" aria-label="Inicio PQR Salud"><span className="brand-icon">✚</span><span><strong>PQR Salud</strong><small>Atención ciudadana</small></span></a>{session && profile && <div className="account"><span className="avatar">{profile.full_name?.charAt(0).toUpperCase()}</span><span><strong>{profile.full_name}</strong><small>{profile.role === 'admin' ? 'Equipo administrativo' : 'Ciudadanía'}</small></span><button className="btn btn-ghost" onClick={signOut}>Salir</button></div>}</header>
-    <main id="inicio">{!isSupabaseConfigured && <div className="alert alert-warning">La aplicación necesita configuración. Crea <code>.env.local</code> a partir de <code>.env.example</code> y ejecuta la migración de Supabase.</div>}{notice && <div className="alert alert-warning">{notice}</div>}{!isSupabaseConfigured ? <div className="loading">Configura Supabase para habilitar el acceso.</div> : loading ? <div className="loading">Cargando tu espacio seguro…</div> : !session ? <Login /> : !profile ? <div className="loading">Preparando tu perfil…</div> : <Productos session={session} profile={profile} />}</main>
+    <main id="inicio">{!isSupabaseConfigured && <div className="alert alert-warning">La aplicación necesita configuración. Crea <code>.env.local</code> a partir de <code>.env.example</code> y ejecuta la migración de Supabase.</div>}{notice && <div className="alert alert-warning">{notice}</div>}{!isSupabaseConfigured ? <div className="loading">Configura Supabase para habilitar el acceso.</div> : loading ? <div className="loading">Cargando tu espacio seguro…</div> : (!session || recovering) ? <Login recovering={recovering} onRecoveryStart={() => setRecovering(true)} onRecoveryDone={(message) => { setRecovering(false); if (message) setNotice(message) }} /> : !profile ? <div className="loading">Preparando tu perfil…</div> : <Productos session={session} profile={profile} />}</main>
     <footer>Centro de Salud Santo Domingo Savio I · Sistema de peticiones, quejas y reclamos</footer>
   </div>
 }
