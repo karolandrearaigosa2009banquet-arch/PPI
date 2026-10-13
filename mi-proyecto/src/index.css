@@ -115,3 +115,4 @@ footer { text-align: center; color: #4973a6; font-size: .78rem; padding: 30px 0 
 /* Menú de administración */
 .search-input{width:100%;margin:0 0 1rem;padding:.7rem .9rem;border:1px solid #cbd5e1;border-radius:10px;font:inherit}
 .section-switcher{flex-wrap:wrap}
+.forgot-button { width: 100%; margin-top: 12px; }

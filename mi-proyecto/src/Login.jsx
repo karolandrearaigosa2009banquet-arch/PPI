@@ -482,7 +482,7 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
               {busy ? 'Procesando...' : 'Iniciar sesión'}
             </button>
 
-            <button type="button" className="text-button" onClick={() => { setRecoverEmail(loginForm.email); setStatus(null); setView('recover') }}>
+            <button type="button" className="btn btn-secondary forgot-button" onClick={() => { setRecoverEmail(loginForm.email); setStatus(null); setView('recover') }}>
               ¿Olvidaste tu contraseña?
             </button>
           </form>
