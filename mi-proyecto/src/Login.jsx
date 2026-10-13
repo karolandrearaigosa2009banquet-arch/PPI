@@ -63,6 +63,8 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
   const [wantsAdmin, setWantsAdmin] = useState(false)
   const [emailVerified, setEmailVerified] = useState(false)
   const [institutionCode, setInstitutionCode] = useState('')
+  const [touched, setTouched] = useState({})
+  const [rejected, setRejected] = useState({})
 
   useEffect(() => {
     if (cooldown <= 0) return undefined
@@ -79,8 +81,59 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
     setLoginForm({ ...loginForm, [field]: event.target.value })
   }
 
-  const updateSignup = (field, clean = (value) => value) => (event) => {
-    setSignupForm({ ...signupForm, [field]: clean(event.target.value) })
+  // Texto de "No válido" que se muestra bajo cada campo.
+  const fieldRules = {
+    'login-email': [loginForm.email, () => validateEmail(loginForm.email)],
+    'recover-email': [recoverEmail, () => validateEmail(recoverEmail)],
+    'recover-code-email': [recoverEmail, () => validateEmail(recoverEmail)],
+    'recover-code': [recoverCode, () => (/^\d{8}$/.test(recoverCode) ? '' : 'El código tiene 8 dígitos.')],
+    'verification-code': [verificationCode, () => (/^\d{8}$/.test(verificationCode) ? '' : 'El código tiene 8 dígitos.')],
+    'institution-code': [institutionCode, () => (institutionCode.trim().length >= 6 ? '' : 'El código de la institución tiene al menos 6 caracteres.')],
+    'new-password': [newPassword, () => validatePassword(newPassword, { email: recoverEmail })],
+    'confirm-new-password': [confirmNewPassword, () => (confirmNewPassword !== newPassword ? 'Las contraseñas no coinciden.' : '')],
+    documentNumber: [signupForm.documentNumber, () => validateDocument(signupForm.documentType, signupForm.documentNumber)],
+    firstName: [signupForm.firstName, () => validateName('nombre', signupForm.firstName)],
+    lastName: [signupForm.lastName, () => validateName('apellido', signupForm.lastName)],
+    'signup-email': [signupForm.email, () => validateEmail(signupForm.email)],
+    phone: [signupForm.phone, () => validatePhone(signupForm.phone)],
+    address: [signupForm.address, () => validateAddress(signupForm.address)],
+    'signup-password': [signupForm.password, () => validatePassword(signupForm.password, { email: signupForm.email, documentNumber: signupForm.documentNumber })],
+    confirmPassword: [signupForm.confirmPassword, () => (signupForm.confirmPassword !== signupForm.password ? 'Las contraseñas no coinciden.' : '')],
+  }
+
+  const shownError = (id) => {
+    const rule = fieldRules[id]
+    if (!rule) return ''
+    if (rejected[id]) return rejected[id]
+    const [value, validate] = rule
+    const text = String(value || '')
+    if (!text.trim()) return ''
+    if (!touched[id] && text.length < 8) return ''
+    return validate()
+  }
+
+  const hint = (id) => {
+    const message = shownError(id)
+    return message ? <small className="field-error" role="alert">No válido: {message}</small> : null
+  }
+
+  const touch = (id) => {
+    setTouched((current) => ({ ...current, [id]: true }))
+    setRejected((current) => ({ ...current, [id]: '' }))
+  }
+
+  const cleanInput = (id, setter, clean, message) => (event) => {
+    const raw = event.target.value
+    const cleaned = clean(raw)
+    setRejected((current) => ({ ...current, [id]: cleaned !== raw ? message : '' }))
+    setter(cleaned)
+  }
+
+  const updateSignup = (field, clean = (value) => value, rejectMessage = '') => (event) => {
+    const raw = event.target.value
+    const cleaned = clean(raw)
+    setRejected((current) => ({ ...current, [field === 'email' ? 'signup-email' : field === 'password' ? 'signup-password' : field]: cleaned !== raw ? rejectMessage : '' }))
+    setSignupForm({ ...signupForm, [field]: cleaned })
   }
 
   const signupSteps = [
@@ -403,6 +456,12 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
           <path d="M38 6h24v32h32v24H62v32H38V62H6V38h32z" />
         </svg>
 
+        <div className="panel-brand">
+          <span className="panel-brand-icon" aria-hidden="true">✚</span>
+          <span className="panel-brand-text"><strong>Sistema PQR</strong><small>(Peticiones, Quejas y Reclamos)</small></span>
+          <span className="version-badge" title="Versión publicada de la página">v{String(__APP_VERSION__).split(' ')[0]}</span>
+        </div>
+
         <span className="kicker">Centro de Salud Santo Domingo Savio I</span>
         <h1>Tu voz también cuida.</h1>
         <p>
@@ -425,6 +484,8 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
         <svg className="pulse-line" viewBox="0 0 400 60" preserveAspectRatio="none" aria-hidden="true">
           <polyline points="0,30 110,30 135,30 150,8 168,52 186,18 200,30 400,30" />
         </svg>
+
+        <p className="panel-footer">Centro de Salud Santo Domingo Savio I · Sistema de peticiones, quejas y reclamos<small>Versión {__APP_VERSION__}</small></p>
       </div>
 
       <div className="auth-card">
@@ -477,7 +538,10 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
                 onChange={updateLogin('email')}
                 placeholder="correo@ejemplo.com"
                 required
+                aria-invalid={Boolean(shownError('login-email'))}
+                onBlur={() => touch('login-email')}
               />
+              {hint('login-email')}
             </label>
 
             <label htmlFor="login-password">
@@ -517,7 +581,10 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
                 onChange={(event) => setRecoverEmail(event.target.value)}
                 placeholder="correo@ejemplo.com"
                 required
+                aria-invalid={Boolean(shownError('recover-email'))}
+                onBlur={() => touch('recover-email')}
               />
+              {hint('recover-email')}
             </label>
             <button type="submit" className="btn btn-primary" disabled={busy || cooldown > 0}>
               {busy ? 'Enviando...' : cooldown > 0 ? `Espera ${cooldown} s` : 'Enviar código'}
@@ -560,7 +627,10 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
                 onChange={(event) => setRecoverEmail(event.target.value)}
                 placeholder="correo@ejemplo.com"
                 required
+                aria-invalid={Boolean(shownError('recover-code-email'))}
+                onBlur={() => touch('recover-code-email')}
               />
+              {hint('recover-code-email')}
             </label>
             <label htmlFor="recover-code">
               Código de recuperación
@@ -569,12 +639,14 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
                 name="recoverCode"
                 inputMode="numeric"
                 autoComplete="one-time-code"
-                maxLength="8"
                 value={recoverCode}
-                onChange={(event) => setRecoverCode(event.target.value.replace(/\D/g, ''))}
+                onChange={cleanInput('recover-code', setRecoverCode, (value) => value.replace(/\D/g, '').slice(0, 8), 'Solo números (8 dígitos).')}
                 placeholder="12345678"
                 required
+                aria-invalid={Boolean(shownError('recover-code'))}
+                onBlur={() => touch('recover-code')}
               />
+              {hint('recover-code')}
             </label>
             <button type="submit" className="btn btn-primary" disabled={busy}>
               {busy ? 'Verificando...' : 'Verificar código'}
@@ -601,7 +673,10 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
                 onChange={(event) => setNewPassword(event.target.value)}
                 placeholder="Mínimo 8 caracteres"
                 required
+                aria-invalid={Boolean(shownError('new-password'))}
+                onBlur={() => touch('new-password')}
               />
+              {hint('new-password')}
             </label>
             <label htmlFor="confirm-new-password">
               Confirmar nueva contraseña
@@ -614,7 +689,10 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
                 onChange={(event) => setConfirmNewPassword(event.target.value)}
                 placeholder="Repite tu contraseña"
                 required
+                aria-invalid={Boolean(shownError('confirm-new-password'))}
+                onBlur={() => touch('confirm-new-password')}
               />
+              {hint('confirm-new-password')}
             </label>
             <button type="submit" className="btn btn-primary" disabled={busy}>
               {busy ? 'Guardando...' : 'Guardar contraseña'}
@@ -640,12 +718,14 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
                     name="verificationCode"
                     inputMode="numeric"
                     autoComplete="one-time-code"
-                    maxLength="8"
-                    value={verificationCode}
-                    onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, ''))}
+                        value={verificationCode}
+                    onChange={cleanInput('verification-code', setVerificationCode, (value) => value.replace(/\D/g, '').slice(0, 8), 'Solo números (8 dígitos).')}
                     placeholder="12345678"
                     required
+                    aria-invalid={Boolean(shownError('verification-code'))}
+                    onBlur={() => touch('verification-code')}
                   />
+                  {hint('verification-code')}
                 </label>
                 <label className="check-row" htmlFor="wants-admin">
                   <input id="wants-admin" type="checkbox" checked={wantsAdmin} onChange={(event) => setWantsAdmin(event.target.checked)} />
@@ -671,7 +751,10 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
                   onChange={(event) => setInstitutionCode(event.target.value)}
                   placeholder="Código entregado por la institución"
                   required
+                  aria-invalid={Boolean(shownError('institution-code'))}
+                  onBlur={() => touch('institution-code')}
                 />
+                {hint('institution-code')}
               </label>
             )}
 
@@ -744,12 +827,15 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
                 name="documentNumber"
                 type="text"
                 value={signupForm.documentNumber}
-                onChange={updateSignup('documentNumber', (value) => value.replace(/\D/g, '').slice(0, 11))}
+                onChange={updateSignup('documentNumber', (value) => value.replace(/\D/g, '').slice(0, 11), 'Solo números, sin puntos ni letras (máximo 11 dígitos).')}
                 inputMode="numeric"
                 autoComplete="off"
                 placeholder={DOCUMENT_OPTIONS.find((option) => option.value === signupForm.documentType)?.placeholder || '1012345678'}
                 required
+                aria-invalid={Boolean(shownError('documentNumber'))}
+                onBlur={() => touch('documentNumber')}
               />
+              {hint('documentNumber')}
             </label></>}
 
             {signupStep === 2 && <><label htmlFor="firstName">
@@ -760,10 +846,13 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
                 type="text"
                 autoComplete="given-name"
                 value={signupForm.firstName}
-                onChange={updateSignup('firstName', (value) => value.replace(/[^\p{L}\s'’-]/gu, '').slice(0, 40))}
+                onChange={updateSignup('firstName', (value) => value.replace(/[^\p{L}\s'’-]/gu, '').slice(0, 40), 'Solo letras, sin números ni símbolos.')}
                 placeholder="Tu nombre"
                 required
+                aria-invalid={Boolean(shownError('firstName'))}
+                onBlur={() => touch('firstName')}
               />
+              {hint('firstName')}
             </label>
 
             <label htmlFor="lastName">
@@ -774,10 +863,13 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
                 type="text"
                 autoComplete="family-name"
                 value={signupForm.lastName}
-                onChange={updateSignup('lastName', (value) => value.replace(/[^\p{L}\s'’-]/gu, '').slice(0, 40))}
+                onChange={updateSignup('lastName', (value) => value.replace(/[^\p{L}\s'’-]/gu, '').slice(0, 40), 'Solo letras, sin números ni símbolos.')}
                 placeholder="Tu apellido"
                 required
+                aria-invalid={Boolean(shownError('lastName'))}
+                onBlur={() => touch('lastName')}
               />
+              {hint('lastName')}
             </label></>}
 
             {signupStep === 3 && <><label htmlFor="signup-email">
@@ -788,10 +880,13 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
                 type="email"
                 autoComplete="email"
                 value={signupForm.email}
-                onChange={updateSignup('email', (value) => value.replace(/\s/g, '').slice(0, 80))}
+                onChange={updateSignup('email', (value) => value.replace(/\s/g, '').slice(0, 80), 'Los correos no llevan espacios.')}
                 placeholder="correo@ejemplo.com"
                 required
+                aria-invalid={Boolean(shownError('signup-email'))}
+                onBlur={() => touch('signup-email')}
               />
+              {hint('signup-email')}
             </label>
 
             <label htmlFor="phone">
@@ -802,11 +897,14 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
                 type="tel"
                 autoComplete="tel"
                 value={signupForm.phone}
-                onChange={updateSignup('phone', (value) => value.replace(/[^\d+\s]/g, '').slice(0, 16))}
+                onChange={updateSignup('phone', (value) => value.replace(/[^\d+\s]/g, '').slice(0, 16), 'Solo números (puedes empezar con +57).')}
                 inputMode="tel"
                 placeholder="3001234567"
                 required
+                aria-invalid={Boolean(shownError('phone'))}
+                onBlur={() => touch('phone')}
               />
+              {hint('phone')}
             </label>
 
             <label htmlFor="address">
@@ -817,10 +915,13 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
                 type="text"
                 autoComplete="street-address"
                 value={signupForm.address}
-                onChange={updateSignup('address', (value) => value.slice(0, 120))}
+                onChange={updateSignup('address', (value) => value.slice(0, 120), 'Máximo 120 caracteres.')}
                 placeholder="Calle 123 # 45-67"
                 required
+                aria-invalid={Boolean(shownError('address'))}
+                onBlur={() => touch('address')}
               />
+              {hint('address')}
             </label></>}
 
             {signupStep === 4 && <><label htmlFor="signup-password">
@@ -834,7 +935,10 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
                 onChange={updateSignup('password')}
                 placeholder="Mínimo 8 caracteres"
                 required
+                aria-invalid={Boolean(shownError('signup-password'))}
+                onBlur={() => touch('signup-password')}
               />
+              {hint('signup-password')}
             </label>
 
             <label htmlFor="confirmPassword">
@@ -848,7 +952,10 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
                 onChange={updateSignup('confirmPassword')}
                 placeholder="Repite tu contraseña"
                 required
+                aria-invalid={Boolean(shownError('confirmPassword'))}
+                onBlur={() => touch('confirmPassword')}
               />
+              {hint('confirmPassword')}
             </label>
 </>}
 
