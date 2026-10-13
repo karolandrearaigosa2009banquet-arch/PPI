@@ -25,6 +25,32 @@ const initialSignupForm = {
   confirmPassword: '',
 }
 
+function friendlyError(error) {
+  const message = String(error?.message || '')
+  const code = error?.code || ''
+  const wait = message.match(/after (\d+) seconds?/i)
+
+  if (code === 'over_email_send_rate_limit' || error?.status === 429 || wait) {
+    return `Por seguridad, espera ${wait ? wait[1] : 60} segundos antes de pedir otro código.`
+  }
+  if (code === 'user_already_exists' || /already registered/i.test(message)) {
+    return 'Este correo ya tiene una cuenta. Inicia sesión o recupera tu contraseña.'
+  }
+  if (code === 'otp_expired' || /expired or is invalid|invalid.*token/i.test(message)) {
+    return 'El código no es válido o ya venció. Solicita uno nuevo.'
+  }
+  if (code === 'same_password' || /different from the old password/i.test(message)) {
+    return 'La nueva contraseña debe ser diferente a la anterior.'
+  }
+  if (code === 'weak_password' || /password should be/i.test(message)) {
+    return 'La contraseña es muy débil. Usa mínimo 8 caracteres.'
+  }
+  if (/rate limit/i.test(message)) {
+    return 'Se enviaron demasiados correos. Espera unos minutos e inténtalo de nuevo.'
+  }
+  return 'No pudimos completar la acción. Inténtalo de nuevo en unos minutos.'
+}
+
 export default function Login({ recovering = false, onRecoveryStart = () => {}, onRecoveryDone = () => {} }) {
   const [view, setView] = useState('login')
   const [signupStep, setSignupStep] = useState(1)
@@ -38,6 +64,13 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
   const [recoverCode, setRecoverCode] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmNewPassword, setConfirmNewPassword] = useState('')
+  const [cooldown, setCooldown] = useState(0)
+
+  useEffect(() => {
+    if (cooldown <= 0) return undefined
+    const timer = setTimeout(() => setCooldown((value) => value - 1), 1000)
+    return () => clearTimeout(timer)
+  }, [cooldown])
 
   // Si el usuario llega desde el enlace del correo de recuperación, pedimos la nueva contraseña.
   useEffect(() => {
@@ -176,7 +209,13 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
     setBusy(false)
 
     if (error) {
-      setStatus({ error: error.message })
+      setStatus({ error: friendlyError(error) })
+      return
+    }
+
+    // Supabase responde "ok" sin enviar correo cuando el correo ya está registrado.
+    if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      setStatus({ error: 'Este correo ya tiene una cuenta. Inicia sesión o usa "¿Olvidaste tu contraseña?".' })
       return
     }
 
@@ -210,7 +249,7 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
     setBusy(false)
 
     if (error || !data.session) {
-      setStatus({ error: error?.message || 'No pudimos verificar el código. Solicita uno nuevo e inténtalo otra vez.' })
+      setStatus({ error: error ? friendlyError(error) : 'No pudimos verificar el código. Solicita uno nuevo e inténtalo otra vez.' })
       return
     }
 
@@ -223,7 +262,7 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
     setBusy(true)
     const { error } = await supabase.auth.resend({ type: 'signup', email: verificationEmail })
     setBusy(false)
-    setStatus(error ? { error: error.message } : { success: 'Enviamos un nuevo código a tu correo.' })
+    setStatus(error ? { error: friendlyError(error) } : { success: 'Enviamos un nuevo código a tu correo.' })
   }
 
   const sendRecoveryCode = async () => {
@@ -242,9 +281,12 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
     setBusy(false)
 
     if (error) {
-      setStatus({ error: error.message })
+      const wait = String(error.message || '').match(/after (\d+) seconds?/i)
+      if (wait) setCooldown(Number(wait[1]))
+      setStatus({ error: friendlyError(error) })
       return false
     }
+    setCooldown(60)
     return true
   }
 
@@ -309,7 +351,7 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
     setBusy(false)
 
     if (error) {
-      setStatus({ error: error.message })
+      setStatus({ error: friendlyError(error) })
       return
     }
 
@@ -437,8 +479,8 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
                 required
               />
             </label>
-            <button type="submit" className="btn btn-primary" disabled={busy}>
-              {busy ? 'Enviando...' : 'Enviar código'}
+            <button type="submit" className="btn btn-primary" disabled={busy || cooldown > 0}>
+              {busy ? 'Enviando...' : cooldown > 0 ? `Espera ${cooldown} s` : 'Enviar código'}
             </button>
             <button type="button" className="text-button" onClick={() => { setView('login'); setStatus(null) }}>
               Volver al inicio de sesión
@@ -465,8 +507,8 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
             <button type="submit" className="btn btn-primary" disabled={busy}>
               {busy ? 'Verificando...' : 'Verificar código'}
             </button>
-            <button type="button" className="text-button" disabled={busy} onClick={resendRecoveryCode}>
-              Reenviar código
+            <button type="button" className="text-button" disabled={busy || cooldown > 0} onClick={resendRecoveryCode}>
+              {cooldown > 0 ? `Reenviar código (${cooldown} s)` : 'Reenviar código'}
             </button>
             <button type="button" className="text-button" onClick={() => { setView('recover'); setStatus(null) }}>
               Cambiar correo
