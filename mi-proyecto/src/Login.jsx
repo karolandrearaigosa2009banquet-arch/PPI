@@ -573,6 +573,10 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
           <form className="form-stack" onSubmit={handleRecoverCode}>
             <h2>Código de recuperación</h2>
             <p className="muted">Escribe tu correo y el código que te enviamos para crear una nueva contraseña.</p>
+            <div className="code-hint">
+              <strong>¿Dónde está mi código?</strong>
+              <span>Busca un correo de <b>PQR Salud</b> con el asunto «Tu código para recuperar la contraseña». Si no lo ves, revisa <b>Spam</b> y <b>Promociones</b>. Si pediste varios, usa el último.</span>
+            </div>
             <label htmlFor="recover-code-email">
               Correo electrónico
               <input
@@ -650,7 +654,11 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
         ) : view === 'verify' ? (
           <form className="form-stack" onSubmit={handleVerify}>
             <h2>Verifica tu correo</h2>
-            <p className="muted">Escribe tu correo y el código de 8 dígitos que te enviamos. Al verificarlo entrarás directamente a tu cuenta.</p>
+            <p className="muted">Escribe tu correo y el código de 8 dígitos que te enviamos. Sirve igual para usuarios y administradores. Al verificarlo entrarás directamente a tu cuenta.</p>
+            <div className="code-hint">
+              <strong>¿Dónde está mi código?</strong>
+              <span>Busca un correo de <b>PQR Salud</b> con el asunto «Tu código de verificación». Si no lo ves, revisa <b>Spam</b> y <b>Promociones</b>. Si pediste varios, usa el último.</span>
+            </div>
             <label htmlFor="verification-email">
               Correo electrónico
               <input
