@@ -111,3 +111,7 @@ footer { text-align: center; color: #4973a6; font-size: .78rem; padding: 30px 0 
 .step-actions { display: flex; justify-content: flex-end; gap: 10px; }
 @media (max-width: 780px) { .app-shell { padding: 15px; } .site-header { padding-bottom: 18px; } .account > span:nth-child(2) { display: none; } .auth-layout, .form-card { grid-template-columns: 1fr; } .welcome-panel { padding: 55px 34px; } .auth-card { padding: 30px; } .dashboard-hero { padding: 30px; display: block; } .hero-stat { margin-top: 25px; } .section-heading { align-items: start; flex-direction: column; } .content-card { padding: 20px; } .case-list { grid-template-columns: 1fr; } }
 @media (max-width: 430px) { .brand small { display: none; } .welcome-panel h1 { font-size: 2.55rem; } .tabs { width: 100%; } .tabs button { flex: 1; } .metrics { width: 100%; justify-content: space-between; } .type-selector { grid-template-columns: 1fr; } .detail-grid { grid-template-columns: 1fr; } }
+
+/* Menú de administración */
+.search-input{width:100%;margin:0 0 1rem;padding:.7rem .9rem;border:1px solid #cbd5e1;border-radius:10px;font:inherit}
+.section-switcher{flex-wrap:wrap}

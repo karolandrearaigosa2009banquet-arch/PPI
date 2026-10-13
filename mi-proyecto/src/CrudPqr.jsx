@@ -8,7 +8,14 @@ const types = [
 ]
 const formatDate = (value) => value ? new Intl.DateTimeFormat('es-CO', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : 'Sin fecha'
 
-export default function CrudPqr({ session, profile }) {
+const documentOf = (item) => {
+  const number = item.document_number || item.numero_documento
+  if (!number) return 'No registrada'
+  const type = item.document_type || item.tipo_documento
+  return `${type ? `${String(type).toUpperCase()} ` : ''}${number}`
+}
+
+export default function CrudPqr({ session, profile, initialFilter = 'Todas' }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
@@ -17,7 +24,7 @@ export default function CrudPqr({ session, profile }) {
   const [feedback, setFeedback] = useState(null)
   const [selected, setSelected] = useState(null)
   const [reply, setReply] = useState('')
-  const [filter, setFilter] = useState('Todas')
+  const [filter, setFilter] = useState(initialFilter)
   const admin = profile?.role === 'admin'
 
   const load = async () => {
@@ -189,15 +196,15 @@ export default function CrudPqr({ session, profile }) {
           </div>
           <div className="metrics">
             <span><strong>{items.length}</strong> total</span>
-            <span><strong>{pending}</strong> pendientes</span>
-            <span><strong>{answered}</strong> respondidas</span>
+            <span><strong>{pending}</strong> sin respuesta</span>
+            <span><strong>{answered}</strong> con respuesta</span>
           </div>
         </div>
 
         <div className="filters">
           {['Todas', 'Enviado', 'Respondido'].map((item) => (
             <button className={filter === item ? 'active' : ''} key={item} onClick={() => setFilter(item)}>
-              {item === 'Enviado' ? 'Pendientes' : item}
+              {item === 'Enviado' ? 'Sin respuesta' : item === 'Respondido' ? 'Con respuesta' : item}
             </button>
           ))}
         </div>
@@ -216,7 +223,7 @@ export default function CrudPqr({ session, profile }) {
                 <div className="case-top">
                   <span className="case-type">{item.tipo || item.tipo_solicitud || 'PQR'}</span>
                   <span className={`status ${item.estado === 'Respondido' ? 'done' : 'pending'}`}>
-                    {item.estado === 'Respondido' ? 'Respondido' : 'Pendiente'}
+                    {item.estado === 'Respondido' ? 'Con respuesta' : 'Sin respuesta'}
                   </span>
                 </div>
 
@@ -225,6 +232,7 @@ export default function CrudPqr({ session, profile }) {
 
                 {admin && (
                   <div className="case-user">
+                    <span><strong>Cédula:</strong> {documentOf(item)}</span>
                     <span><strong>Correo:</strong> {item.email || item.correo || 'No registrado'}</span>
                     <span><strong>Teléfono:</strong> {item.phone || item.telefono || 'No registrado'}</span>
                   </div>
@@ -240,7 +248,7 @@ export default function CrudPqr({ session, profile }) {
                 )}
 
                 <div className="case-actions">
-                  <button className="btn btn-ghost" onClick={() => setSelected(item)}>Ver más</button>
+                  <button className="btn btn-ghost" onClick={() => setSelected(item)}>Ver</button>
                   {admin && item.estado !== 'Respondido' && (
                     <button className="btn btn-secondary" onClick={() => { setSelected(item); setReply('') }}>
                       Responder
@@ -261,10 +269,12 @@ export default function CrudPqr({ session, profile }) {
             <h2 id="pqr-detail-title">{selected.tipo || selected.tipo_solicitud || 'PQR'}</h2>
 
             <div className="detail-grid">
-              <div><strong>Estado</strong><span>{selected.estado === 'Respondido' ? 'Respondido' : 'Pendiente'}</span></div>
+              <div><strong>Estado</strong><span>{selected.estado === 'Respondido' ? 'Con respuesta' : 'Sin respuesta'}</span></div>
               <div><strong>Fecha de envío</strong><span>{formatDate(selected.created_at || selected.fecha_radicacion)}</span></div>
               {admin && <div><strong>Usuario</strong><span>{selected.full_name || selected.nombre_completo || 'No registrado'}</span></div>}
+              {admin && <div><strong>Cédula</strong><span>{documentOf(selected)}</span></div>}
               {admin && <div><strong>Correo</strong><span>{selected.email || selected.correo || 'No registrado'}</span></div>}
+              {admin && <div><strong>Teléfono</strong><span>{selected.phone || selected.telefono || 'No registrado'}</span></div>}
             </div>
 
             <div className="detail-box">
@@ -274,7 +284,7 @@ export default function CrudPqr({ session, profile }) {
 
             <div className="detail-box response-detail">
               <strong>Respuesta</strong>
-              {selected.respuesta ? <p>{selected.respuesta}</p> : <p className="muted">Todavía no hay una respuesta.</p>}
+              {selected.respuesta ? <p>{selected.respuesta}</p> : <p className="muted">Sin respuesta todavía.</p>}
             </div>
 
             {admin && selected.estado !== 'Respondido' && (

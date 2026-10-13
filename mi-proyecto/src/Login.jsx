@@ -23,6 +23,8 @@ const initialSignupForm = {
   address: '',
   password: '',
   confirmPassword: '',
+  accountType: 'user',
+  adminCode: '',
 }
 
 function friendlyError(error) {
@@ -100,7 +102,9 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
       && /^\d{7,15}$/.test(signupForm.phone.replace(/\D/g, ''))
       && signupForm.address.trim(),
     )
-    return signupForm.password.length >= 8 && signupForm.password === signupForm.confirmPassword
+    return signupForm.password.length >= 8
+      && signupForm.password === signupForm.confirmPassword
+      && (signupForm.accountType !== 'admin' || Boolean(signupForm.adminCode.trim()))
   }
 
   const nextSignupStep = () => {
@@ -190,6 +194,12 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
       return
     }
 
+    const isAdminSignup = signupForm.accountType === 'admin'
+    if (isAdminSignup && !signupForm.adminCode.trim()) {
+      setStatus({ error: 'Escribe el código de administrador para crear una cuenta de administración.' })
+      return
+    }
+
     setBusy(true)
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -203,12 +213,18 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
           document_number: documentNumber,
           phone,
           address,
+          // El código se valida en la base de datos; nunca en el navegador.
+          ...(isAdminSignup ? { admin_code: signupForm.adminCode.trim() } : {}),
         },
       },
     })
     setBusy(false)
 
     if (error) {
+      if (isAdminSignup && (error.code === 'unexpected_failure' || /database error/i.test(String(error.message)))) {
+        setStatus({ error: 'Código de administrador incorrecto. Verifícalo e inténtalo de nuevo.' })
+        return
+      }
       setStatus({ error: friendlyError(error) })
       return
     }
@@ -742,7 +758,36 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
                 placeholder="Repite tu contraseña"
                 required
               />
-            </label></>}
+            </label>
+
+            <label htmlFor="accountType">
+              Tipo de cuenta
+              <select
+                id="accountType"
+                name="accountType"
+                value={signupForm.accountType}
+                onChange={updateSignup('accountType')}
+              >
+                <option value="user">Usuario</option>
+                <option value="admin">Administrador</option>
+              </select>
+            </label>
+
+            {signupForm.accountType === 'admin' && (
+              <label htmlFor="adminCode">
+                Código de administrador
+                <input
+                  id="adminCode"
+                  name="adminCode"
+                  type="password"
+                  autoComplete="off"
+                  value={signupForm.adminCode}
+                  onChange={updateSignup('adminCode')}
+                  placeholder="Código entregado por la institución"
+                  required
+                />
+              </label>
+            )}</>}
 
             <div className="step-actions">
               {signupStep > 1 && <button type="button" className="btn btn-ghost" onClick={() => { setStatus(null); setSignupStep((step) => step - 1) }}>Anterior</button>}
