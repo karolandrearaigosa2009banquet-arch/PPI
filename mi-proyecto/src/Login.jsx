@@ -460,16 +460,6 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
           >
             Registrarse
           </button>
-          <button
-            type="button"
-            className={['codes', 'verify', 'recover-code'].includes(view) ? 'active' : ''}
-            onClick={() => {
-              setView('codes')
-              setStatus(null)
-            }}
-          >
-            Tengo un código
-          </button>
         </div>
 
         {status && (
@@ -616,8 +606,8 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
             <button type="button" className="text-button" disabled={busy || cooldown > 0} onClick={resendRecoveryCode}>
               {cooldown > 0 ? `Reenviar código (${cooldown} s)` : 'Reenviar código'}
             </button>
-            <button type="button" className="text-button" onClick={() => { setView('codes'); setStatus(null) }}>
-              Elegir otro tipo de código
+            <button type="button" className="text-button" onClick={() => { setView('recover'); setStatus(null) }}>
+              Cambiar correo
             </button>
           </form>
         ) : view === 'reset' ? (
@@ -657,26 +647,6 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
               Cancelar
             </button>
           </form>
-        ) : view === 'codes' ? (
-          <div className="form-stack">
-            <h2>Ingresar un código</h2>
-            <p className="muted">Elige para qué es el código que recibiste.</p>
-
-            <button type="button" className="code-option" onClick={() => { setVerificationEmail(loginForm.email.trim() || signupForm.email.trim()); setVerificationCode(''); setStatus(null); setView('verify') }}>
-              <b>Código de verificación de registro</b>
-              <span>Para usuarios y administradores que acaban de crear su cuenta. Llega a tu correo.</span>
-            </button>
-
-            <button type="button" className="code-option" onClick={() => { setRecoverEmail(loginForm.email.trim()); setRecoverCode(''); setStatus(null); setView('recover-code') }}>
-              <b>Código de recuperación de contraseña</b>
-              <span>Si olvidaste tu contraseña y pediste un código para crear una nueva.</span>
-            </button>
-
-            <button type="button" className="code-option" onClick={() => { setSignupForm((form) => ({ ...form, accountType: 'admin' })); setSignupStep(1); setStatus(null); setView('signup') }}>
-              <b>Código de administrador</b>
-              <span>Para crear una cuenta de administración. Se escribe en el primer paso del registro.</span>
-            </button>
-          </div>
         ) : view === 'verify' ? (
           <form className="form-stack" onSubmit={handleVerify}>
             <h2>Verifica tu correo</h2>
@@ -714,8 +684,8 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
             <button type="button" className="text-button" disabled={busy} onClick={resendVerificationCode}>
               Reenviar código
             </button>
-            <button type="button" className="text-button" onClick={() => { setView('codes'); setStatus(null) }}>
-              Elegir otro tipo de código
+            <button type="button" className="text-button" onClick={() => { setView('signup'); setStatus(null) }}>
+              Volver al registro
             </button>
           </form>
         ) : (
