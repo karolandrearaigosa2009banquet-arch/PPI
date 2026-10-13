@@ -282,26 +282,34 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
 
     if (error) {
       const wait = String(error.message || '').match(/after (\d+) seconds?/i)
-      if (wait) setCooldown(Number(wait[1]))
+      if (wait) {
+        // Ya se envió un código hace poco: dejamos escribirlo en lugar de bloquear al usuario.
+        setCooldown(Number(wait[1]))
+        setStatus({ success: `Ya te enviamos un código hace poco. Escríbelo aquí; si no lo encuentras, podrás pedir otro en ${wait[1]} segundos.` })
+        return 'limited'
+      }
       setStatus({ error: friendlyError(error) })
       return false
     }
     setCooldown(60)
-    return true
+    return 'sent'
   }
 
   const handleRecover = async (event) => {
     event.preventDefault()
     setStatus(null)
-    if (!(await sendRecoveryCode())) return
+    const result = await sendRecoveryCode()
+    if (!result) return
     setRecoverCode('')
     setView('recover-code')
-    setStatus({ success: 'Si existe una cuenta con ese correo, te enviamos un código de recuperación. Revisa también la carpeta de spam.' })
+    if (result === 'sent') {
+      setStatus({ success: 'Si existe una cuenta con ese correo, te enviamos un código de recuperación. Revisa también la carpeta de spam.' })
+    }
   }
 
   const resendRecoveryCode = async () => {
     setStatus(null)
-    if (await sendRecoveryCode()) setStatus({ success: 'Enviamos un nuevo código a tu correo.' })
+    if ((await sendRecoveryCode()) === 'sent') setStatus({ success: 'Enviamos un nuevo código a tu correo.' })
   }
 
   const handleRecoverCode = async (event) => {
@@ -481,6 +489,21 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
             </label>
             <button type="submit" className="btn btn-primary" disabled={busy || cooldown > 0}>
               {busy ? 'Enviando...' : cooldown > 0 ? `Espera ${cooldown} s` : 'Enviar código'}
+            </button>
+            <button
+              type="button"
+              className="text-button"
+              onClick={() => {
+                if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recoverEmail.trim())) {
+                  setStatus({ error: 'Escribe tu correo para poder ingresar el código.' })
+                  return
+                }
+                setStatus(null)
+                setRecoverCode('')
+                setView('recover-code')
+              }}
+            >
+              Ya tengo un código
             </button>
             <button type="button" className="text-button" onClick={() => { setView('login'); setStatus(null) }}>
               Volver al inicio de sesión
