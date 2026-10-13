@@ -864,6 +864,14 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
                 <button type="submit" className="btn btn-primary" disabled={busy}>{busy ? 'Creando cuenta...' : 'Crear cuenta'}</button>
               )}
             </div>
+
+            <button
+              type="button"
+              className="btn btn-secondary forgot-button"
+              onClick={() => { setRecoverEmail(signupForm.email.trim()); setStatus(null); setView('recover') }}
+            >
+              ¿Olvidaste tu contraseña?
+            </button>
           </form>
         )}
       </div>
