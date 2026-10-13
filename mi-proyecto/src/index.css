@@ -159,3 +159,32 @@ footer { text-align: center; color: #4973a6; font-size: .78rem; padding: 30px 0 
 .check-row { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 14px; background: #eef6ff; border: 1px solid #cfe0f5; color: #0a3a82; font-weight: 600; font-size: .92rem; cursor: pointer; }
 .check-row input { width: 18px; height: 18px; flex: none; accent-color: #1466c3; }
 .account-note { margin: 0; font-size: .86rem; }
+
+/* Cuadro principal más compacto */
+.brand small { display: block; font-size: .74rem; }
+@media (min-width: 781px) {
+  .auth-layout { max-width: 920px; min-height: 0; margin: 0 auto; grid-template-columns: 1fr 1fr; border-radius: 22px; }
+  .welcome-panel { padding: 34px 34px; }
+  .welcome-panel h1 { font-size: 2rem; margin: 8px 0; }
+  .welcome-panel p { font-size: .92rem; line-height: 1.5; }
+  .welcome-panel .feature-list { gap: 8px; margin-top: 18px; }
+  .welcome-panel .feature-list span { padding: 8px 12px; font-size: .86rem; border-radius: 13px; }
+  .welcome-panel .feature-list i { width: 22px; height: 22px; font-size: .75rem; }
+  .welcome-panel .process-card { margin-top: 16px; padding: 10px 8px; border-radius: 14px; }
+  .welcome-panel .process-card li { font-size: .74rem; gap: 6px; }
+  .welcome-panel .process-card li b { width: 28px; height: 28px; font-size: .82rem; }
+  .welcome-panel .process-card li:not(:last-child)::after { top: 14px; left: calc(50% + 20px); width: calc(100% - 40px); }
+  .welcome-panel .pulse-line { height: 26px; margin-top: 12px; }
+  .welcome-panel .welcome-cross { width: 100px; }
+  .auth-card { max-width: 400px; padding: 24px 28px; }
+  .auth-card h2 { font-size: 1.45rem; margin-top: 12px; }
+  .auth-card .form-stack { gap: 12px; margin-top: 16px; }
+}
+@media (max-width: 780px) {
+  .welcome-panel { padding: 30px 6%; }
+  .welcome-panel h1 { font-size: 2rem; }
+  .welcome-panel .process-card, .welcome-panel .pulse-line { display: none; }
+  .auth-card { padding: 22px; }
+}
+@media (max-width: 430px) { .brand small { font-size: .68rem; max-width: 190px; line-height: 1.2; } }
+@media (min-width: 781px) { .app-shell:has(.auth-layout) .site-header { max-width: 920px; margin: 0 auto; } }
