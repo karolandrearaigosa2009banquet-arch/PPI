@@ -12,7 +12,7 @@ export default defineConfig(({ command, isPreview }) => ({
   server: {
     host: '0.0.0.0',
     port: 5173,
-    strictPort: true,
+    strictPort: false, // si el 5173 está ocupado, Vite usa el siguiente puerto libre y lo muestra en pantalla
     allowedHosts: ['.app.github.dev', 'localhost'],
   },
 }))
