@@ -154,3 +154,8 @@ footer { text-align: center; color: #4973a6; font-size: .78rem; padding: 30px 0 
 .code-hint { display: grid; gap: 4px; padding: 12px 14px; border-radius: 14px; background: #fff8e6; border: 1px solid #f2d98b; color: #6b5200; font-size: .88rem; line-height: 1.45; }
 .code-hint strong { color: #5a4300; }
 .version-badge { margin-left: 4px; margin-right: auto; align-self: center; padding: 4px 10px; border-radius: 999px; background: #e7f1fd; border: 1px solid #b9d6f5; color: #0a3a82; font-size: .75rem; font-weight: 700; white-space: nowrap; }
+
+/* Confirmación del correo */
+.check-row { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 14px; background: #eef6ff; border: 1px solid #cfe0f5; color: #0a3a82; font-weight: 600; font-size: .92rem; cursor: pointer; }
+.check-row input { width: 18px; height: 18px; flex: none; accent-color: #1466c3; }
+.account-note { margin: 0; font-size: .86rem; }

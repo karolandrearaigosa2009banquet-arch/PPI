@@ -1,12 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getAppUrl, supabase } from './supabaseClient'
-
-const DOCUMENT_OPTIONS = [
-  { value: 'rc', label: 'RC' },
-  { value: 'ti', label: 'TI' },
-  { value: 'cc', label: 'CC' },
-  { value: 'ce', label: 'CE' },
-]
+import { DOCUMENT_OPTIONS, normalizeAddress, normalizeEmail, normalizeName, normalizePhone, validateAddress, validateDocument, validateEmail, validateName, validatePassword, validatePhone } from './validators'
 
 const initialLoginForm = {
   email: '',
@@ -24,7 +18,6 @@ const initialSignupForm = {
   password: '',
   confirmPassword: '',
   accountType: 'user',
-  adminCode: '',
 }
 
 function friendlyError(error) {
@@ -53,7 +46,7 @@ function friendlyError(error) {
   return 'No pudimos completar la acción. Inténtalo de nuevo en unos minutos.'
 }
 
-export default function Login({ recovering = false, onRecoveryStart = () => {}, onRecoveryDone = () => {} }) {
+export default function Login({ recovering = false, onRecoveryStart = () => {}, onRecoveryDone = () => {}, onHold = () => {}, onRelease = () => {} }) {
   const [view, setView] = useState('login')
   const [signupStep, setSignupStep] = useState(1)
   const [loginForm, setLoginForm] = useState(initialLoginForm)
@@ -67,6 +60,9 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
   const [newPassword, setNewPassword] = useState('')
   const [confirmNewPassword, setConfirmNewPassword] = useState('')
   const [cooldown, setCooldown] = useState(0)
+  const [wantsAdmin, setWantsAdmin] = useState(false)
+  const [emailVerified, setEmailVerified] = useState(false)
+  const [institutionCode, setInstitutionCode] = useState('')
 
   useEffect(() => {
     if (cooldown <= 0) return undefined
@@ -83,8 +79,8 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
     setLoginForm({ ...loginForm, [field]: event.target.value })
   }
 
-  const updateSignup = (field) => (event) => {
-    setSignupForm({ ...signupForm, [field]: event.target.value })
+  const updateSignup = (field, clean = (value) => value) => (event) => {
+    setSignupForm({ ...signupForm, [field]: clean(event.target.value) })
   }
 
   const signupSteps = [
@@ -94,20 +90,18 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
     { title: 'Seguridad', description: 'Protege el acceso a tu cuenta.' },
   ]
 
-  const canContinue = () => {
-    if (signupStep === 1) return Boolean(signupForm.documentType && signupForm.documentNumber.trim() && (signupForm.accountType !== 'admin' || signupForm.adminCode.trim()))
-    if (signupStep === 2) return Boolean(signupForm.firstName.trim() && signupForm.lastName.trim())
-    if (signupStep === 3) return Boolean(
-      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signupForm.email.trim())
-      && /^\d{7,15}$/.test(signupForm.phone.replace(/\D/g, ''))
-      && signupForm.address.trim(),
-    )
-    return signupForm.password.length >= 8 && signupForm.password === signupForm.confirmPassword
+  const stepError = (step) => {
+    if (step === 1) return validateDocument(signupForm.documentType, signupForm.documentNumber)
+    if (step === 2) return validateName('nombre', signupForm.firstName) || validateName('apellido', signupForm.lastName)
+    if (step === 3) return validateEmail(signupForm.email) || validatePhone(signupForm.phone) || validateAddress(signupForm.address)
+    return validatePassword(signupForm.password, { email: signupForm.email, documentNumber: signupForm.documentNumber })
+      || (signupForm.password !== signupForm.confirmPassword ? 'Las contraseñas no coinciden.' : '')
   }
 
   const nextSignupStep = () => {
-    if (!canContinue()) {
-      setStatus({ error: 'Completa correctamente los campos de este paso antes de continuar.' })
+    const message = stepError(signupStep)
+    if (message) {
+      setStatus({ error: message })
       return
     }
     setStatus(null)
@@ -141,6 +135,9 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
           // Cuenta creada pero sin verificar: pedimos el código en lugar de mostrar un error genérico.
           setVerificationEmail(email)
           setVerificationCode('')
+          setInstitutionCode('')
+          setEmailVerified(false)
+          setWantsAdmin(false)
           setView('verify')
           const { error: resendError } = await supabase.auth.resend({ type: 'signup', email })
           const waiting = resendError && /after (\d+) seconds?/i.test(String(resendError.message))
@@ -156,58 +153,22 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
       return
     }
 
-    const firstName = signupForm.firstName.trim()
-    const lastName = signupForm.lastName.trim()
-    const email = signupForm.email.trim()
+    for (let step = 1; step <= signupSteps.length; step += 1) {
+      const message = stepError(step)
+      if (message) {
+        setSignupStep(step)
+        setStatus({ error: message })
+        return
+      }
+    }
+
+    const firstName = normalizeName(signupForm.firstName)
+    const lastName = normalizeName(signupForm.lastName)
+    const email = normalizeEmail(signupForm.email)
     const documentNumber = signupForm.documentNumber.trim()
-    const phone = signupForm.phone.trim()
-    const address = signupForm.address.trim()
-
-    if (!signupForm.documentType) {
-      setStatus({ error: 'Selecciona un tipo de documento.' })
-      return
-    }
-
-    if (!documentNumber) {
-      setStatus({ error: 'Escribe el número de documento.' })
-      return
-    }
-
-    if (!firstName || !lastName) {
-      setStatus({ error: 'Escribe tu nombre y apellido.' })
-      return
-    }
-
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setStatus({ error: 'Escribe un correo válido.' })
-      return
-    }
-
-    if (!phone || !/^\d{7,15}$/.test(phone.replace(/\D/g, ''))) {
-      setStatus({ error: 'Escribe un teléfono válido.' })
-      return
-    }
-
-    if (!address) {
-      setStatus({ error: 'Escribe tu dirección.' })
-      return
-    }
-
-    if (signupForm.password.length < 8) {
-      setStatus({ error: 'Usa una contraseña de mínimo 8 caracteres.' })
-      return
-    }
-
-    if (signupForm.password !== signupForm.confirmPassword) {
-      setStatus({ error: 'Las contraseñas no coinciden.' })
-      return
-    }
-
+    const phone = normalizePhone(signupForm.phone)
+    const address = normalizeAddress(signupForm.address)
     const isAdminSignup = signupForm.accountType === 'admin'
-    if (isAdminSignup && !signupForm.adminCode.trim()) {
-      setStatus({ error: 'Escribe el código de administrador para crear una cuenta de administración.' })
-      return
-    }
 
     setBusy(true)
     const { data, error } = await supabase.auth.signUp({
@@ -222,18 +183,12 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
           document_number: documentNumber,
           phone,
           address,
-          // El código se valida en la base de datos; nunca en el navegador.
-          ...(isAdminSignup ? { admin_code: signupForm.adminCode.trim() } : {}),
         },
       },
     })
     setBusy(false)
 
     if (error) {
-      if (isAdminSignup && (error.code === 'unexpected_failure' || /database error/i.test(String(error.message)))) {
-        setStatus({ error: 'Código de administrador incorrecto. Verifícalo e inténtalo de nuevo.' })
-        return
-      }
       setStatus({ error: friendlyError(error) })
       return
     }
@@ -247,8 +202,11 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
     if (!data.session) {
       setVerificationEmail(email)
       setVerificationCode('')
+      setInstitutionCode('')
+      setEmailVerified(false)
+      setWantsAdmin(isAdminSignup)
       setView('verify')
-      setStatus({ success: 'Te enviamos un código de verificación a tu correo.' })
+      setStatus({ success: 'Te enviamos un código a tu correo.' })
       return
     }
 
@@ -260,26 +218,57 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
     if (!supabase) return
 
     const token = verificationCode.trim()
-    if (!/^\d{8}$/.test(token)) {
+    const institution = institutionCode.trim()
+
+    if (!emailVerified && !/^\d{8}$/.test(token)) {
       setStatus({ error: 'Escribe el código de 8 dígitos que recibiste por correo.' })
+      return
+    }
+    if (wantsAdmin && institution.length < 6) {
+      setStatus({ error: 'Escribe el código de la institución para activar tu cuenta de administrador.' })
       return
     }
 
     setBusy(true)
-    const { data, error } = await supabase.auth.verifyOtp({
-      email: verificationEmail.trim(),
-      token,
-      type: 'signup',
-    })
-    setBusy(false)
-
-    if (error || !data.session) {
-      setStatus({ error: error ? friendlyError(error) : 'No pudimos verificar el código. Solicita uno nuevo e inténtalo otra vez.' })
-      return
+    if (!emailVerified) {
+      onHold()
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: verificationEmail.trim(),
+        token,
+        type: 'signup',
+      })
+      if (error || !data.session) {
+        setBusy(false)
+        onRelease()
+        setStatus({ error: error ? friendlyError(error) : 'No pudimos verificar el código. Solicita uno nuevo e inténtalo otra vez.' })
+        return
+      }
+      setEmailVerified(true)
     }
 
-    setStatus({ success: 'Correo verificado. Ya puedes enviar tu PQR.' })
+    if (wantsAdmin) {
+      const { data: granted, error: rpcError } = await supabase.rpc('redeem_admin_code', { p_code: institution })
+      if (rpcError || granted !== true) {
+        setBusy(false)
+        setStatus({ error: String(rpcError?.message || '').includes('too_many_attempts')
+          ? 'Demasiados intentos con el código de la institución. Espera una hora e inténtalo de nuevo.'
+          : 'El código de la institución no es correcto. Verifícalo e inténtalo de nuevo.' })
+        return
+      }
+      await supabase.auth.refreshSession()
+    }
+
+    setBusy(false)
     setSignupForm(initialSignupForm)
+    setSignupStep(1)
+    onRelease(wantsAdmin ? 'Cuenta de administrador confirmada. ¡Bienvenido!' : 'Correo confirmado. ¡Bienvenido!')
+  }
+
+  const continueAsUser = () => {
+    setWantsAdmin(false)
+    setSignupForm(initialSignupForm)
+    setSignupStep(1)
+    onRelease('Correo confirmado. Entraste como usuario.')
   }
 
   const resendVerificationCode = async () => {
@@ -287,6 +276,7 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
     setBusy(true)
     const { error } = await supabase.auth.resend({ type: 'signup', email: verificationEmail })
     setBusy(false)
+    if (!error) setCooldown(60)
     setStatus(error ? { error: friendlyError(error) } : { success: 'Enviamos un nuevo código a tu correo.' })
   }
 
@@ -511,24 +501,6 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
             <button type="button" className="btn btn-secondary forgot-button" onClick={() => { setRecoverEmail(loginForm.email); setStatus(null); setView('recover') }}>
               ¿Olvidaste tu contraseña?
             </button>
-
-            <button
-              type="button"
-              className="btn btn-ghost forgot-button"
-              onClick={() => {
-                const email = loginForm.email.trim()
-                if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                  setStatus({ error: 'Escribe tu correo en el campo de arriba para ingresar tu código.' })
-                  return
-                }
-                setVerificationEmail(email)
-                setVerificationCode('')
-                setStatus(null)
-                setView('verify')
-              }}
-            >
-              Ya tengo un código de verificación
-            </button>
           </form>
         ) : view === 'recover' ? (
           <form className="form-stack" onSubmit={handleRecover}>
@@ -653,48 +625,73 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
           </form>
         ) : view === 'verify' ? (
           <form className="form-stack" onSubmit={handleVerify}>
-            <h2>Verifica tu correo</h2>
-            <p className="muted">Escribe tu correo y el código de 8 dígitos que te enviamos. Sirve igual para usuarios y administradores. Al verificarlo entrarás directamente a tu cuenta.</p>
-            <div className="code-hint">
-              <strong>¿Dónde está mi código?</strong>
-              <span>Busca un correo de <b>PQR Salud</b> con el asunto «Tu código de verificación». Si no lo ves, revisa <b>Spam</b> y <b>Promociones</b>. Si pediste varios, usa el último.</span>
-            </div>
-            <label htmlFor="verification-email">
-              Correo electrónico
-              <input
-                id="verification-email"
-                name="verificationEmail"
-                type="email"
-                autoComplete="email"
-                value={verificationEmail}
-                onChange={(event) => setVerificationEmail(event.target.value)}
-                placeholder="correo@ejemplo.com"
-                required
-              />
-            </label>
-            <label htmlFor="verification-code">
-              Código de verificación
-              <input
-                id="verification-code"
-                name="verificationCode"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                maxLength="8"
-                value={verificationCode}
-                onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, ''))}
-                placeholder="12345678"
-                required
-              />
-            </label>
+            {!emailVerified ? (
+              <>
+                <h2>Introduce el código que te llegó al correo</h2>
+                <p className="muted">Enviamos un código de 8 dígitos a <strong>{verificationEmail}</strong>.</p>
+                <div className="code-hint">
+                  <strong>¿No lo ves?</strong>
+                  <span>Busca un correo de <b>PQR Salud</b> y revisa <b>Spam</b> y <b>Promociones</b>. Si pediste varios, usa el último.</span>
+                </div>
+                <label htmlFor="verification-code">
+                  Código del correo
+                  <input
+                    id="verification-code"
+                    name="verificationCode"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength="8"
+                    value={verificationCode}
+                    onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, ''))}
+                    placeholder="12345678"
+                    required
+                  />
+                </label>
+                <label className="check-row" htmlFor="wants-admin">
+                  <input id="wants-admin" type="checkbox" checked={wantsAdmin} onChange={(event) => setWantsAdmin(event.target.checked)} />
+                  <span>Soy administrador (tengo el código de la institución)</span>
+                </label>
+              </>
+            ) : (
+              <>
+                <h2>Código de la institución</h2>
+                <p className="muted">Tu correo ya está confirmado. Falta el código de la institución para activar tu cuenta de administrador.</p>
+              </>
+            )}
+
+            {wantsAdmin && (
+              <label htmlFor="institution-code">
+                Código de la institución
+                <input
+                  id="institution-code"
+                  name="institutionCode"
+                  type="password"
+                  autoComplete="off"
+                  value={institutionCode}
+                  onChange={(event) => setInstitutionCode(event.target.value)}
+                  placeholder="Código entregado por la institución"
+                  required
+                />
+              </label>
+            )}
+
             <button type="submit" className="btn btn-primary" disabled={busy}>
-              {busy ? 'Verificando...' : 'Verificar y continuar'}
+              {busy ? 'Confirmando...' : 'Confirmar'}
             </button>
-            <button type="button" className="text-button" disabled={busy} onClick={resendVerificationCode}>
-              Reenviar código
-            </button>
-            <button type="button" className="text-button" onClick={() => { setView('signup'); setStatus(null) }}>
-              Volver al registro
-            </button>
+            {!emailVerified ? (
+              <>
+                <button type="button" className="text-button" disabled={busy || cooldown > 0} onClick={resendVerificationCode}>
+                  {cooldown > 0 ? `Reenviar código (${cooldown} s)` : 'Reenviar código'}
+                </button>
+                <button type="button" className="text-button" onClick={() => { setView('signup'); setStatus(null) }}>
+                  Volver al registro
+                </button>
+              </>
+            ) : (
+              <button type="button" className="text-button" onClick={continueAsUser}>
+                Continuar como usuario
+              </button>
+            )}
           </form>
         ) : (
           <form className="form-stack" onSubmit={handleSubmit}>
@@ -719,19 +716,7 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
                 </select>
               </label>
               {signupForm.accountType === 'admin' && (
-                <label htmlFor="adminCode">
-                  Código de administrador
-                  <input
-                    id="adminCode"
-                    name="adminCode"
-                    type="password"
-                    autoComplete="off"
-                    value={signupForm.adminCode}
-                    onChange={updateSignup('adminCode')}
-                    placeholder="Código entregado por la institución"
-                    required
-                  />
-                </label>
+                <p className="muted account-note">Al confirmar tu correo te pediremos el <b>código de la institución</b>.</p>
               )}
             </div>
 
@@ -759,8 +744,10 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
                 name="documentNumber"
                 type="text"
                 value={signupForm.documentNumber}
-                onChange={updateSignup('documentNumber')}
-                placeholder="1234567890"
+                onChange={updateSignup('documentNumber', (value) => value.replace(/\D/g, '').slice(0, 11))}
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder={DOCUMENT_OPTIONS.find((option) => option.value === signupForm.documentType)?.placeholder || '1012345678'}
                 required
               />
             </label></>}
@@ -773,7 +760,7 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
                 type="text"
                 autoComplete="given-name"
                 value={signupForm.firstName}
-                onChange={updateSignup('firstName')}
+                onChange={updateSignup('firstName', (value) => value.replace(/[^\p{L}\s'’-]/gu, '').slice(0, 40))}
                 placeholder="Tu nombre"
                 required
               />
@@ -787,7 +774,7 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
                 type="text"
                 autoComplete="family-name"
                 value={signupForm.lastName}
-                onChange={updateSignup('lastName')}
+                onChange={updateSignup('lastName', (value) => value.replace(/[^\p{L}\s'’-]/gu, '').slice(0, 40))}
                 placeholder="Tu apellido"
                 required
               />
@@ -801,7 +788,7 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
                 type="email"
                 autoComplete="email"
                 value={signupForm.email}
-                onChange={updateSignup('email')}
+                onChange={updateSignup('email', (value) => value.replace(/\s/g, '').slice(0, 80))}
                 placeholder="correo@ejemplo.com"
                 required
               />
@@ -815,7 +802,8 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
                 type="tel"
                 autoComplete="tel"
                 value={signupForm.phone}
-                onChange={updateSignup('phone')}
+                onChange={updateSignup('phone', (value) => value.replace(/[^\d+\s]/g, '').slice(0, 16))}
+                inputMode="tel"
                 placeholder="3001234567"
                 required
               />
@@ -829,7 +817,7 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
                 type="text"
                 autoComplete="street-address"
                 value={signupForm.address}
-                onChange={updateSignup('address')}
+                onChange={updateSignup('address', (value) => value.slice(0, 120))}
                 placeholder="Calle 123 # 45-67"
                 required
               />
