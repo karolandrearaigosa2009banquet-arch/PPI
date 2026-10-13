@@ -102,7 +102,7 @@
   function iniciar() {
     var css = document.createElement('style');
     css.textContent =
-      '.ppi-tr{font-family:system-ui,Arial,sans-serif;font-size:14px;color:#202124}' +
+      '.ppi-tr{font-family:Nunito,system-ui,Arial,sans-serif;font-size:14px;color:#202124}' +
       '#aviso-traduccion{position:fixed;top:16px;right:16px;z-index:99999;width:360px;max-width:calc(100vw - 32px);background:#fff;border-radius:14px;box-shadow:0 6px 28px rgba(0,0,0,.28);padding:16px}' +
       '#aviso-traduccion h4{margin:0 0 12px;font-size:15px;font-weight:600}' +
       '#aviso-traduccion select{width:100%;padding:9px 10px;margin-bottom:12px;border:1px solid #c6d4e6;border-radius:10px;font:inherit;background:#fff}' +
