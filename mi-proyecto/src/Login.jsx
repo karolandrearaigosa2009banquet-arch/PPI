@@ -2,6 +2,15 @@ import { useEffect, useState } from 'react'
 import { getAppUrl, supabase } from './supabaseClient'
 import { DOCUMENT_OPTIONS, normalizeAddress, normalizeEmail, normalizeName, normalizePhone, validateAddress, validateDocument, validateEmail, validateName, validatePassword, validatePhone } from './validators'
 
+// Campos de cada paso del registro (para marcar los que estén vacíos).
+const STEP_FIELDS = {
+  1: ['documentNumber'],
+  2: ['firstName', 'lastName'],
+  3: ['signup-email', 'phone', 'address'],
+  4: ['signup-password', 'confirmPassword'],
+}
+const EMPTY = '__campo_vacio__'
+
 const initialLoginForm = {
   email: '',
   password: '',
@@ -84,6 +93,7 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
   // Texto de "No válido" que se muestra bajo cada campo.
   const fieldRules = {
     'login-email': [loginForm.email, () => validateEmail(loginForm.email)],
+    'login-password': [loginForm.password, () => ''],
     'recover-email': [recoverEmail, () => validateEmail(recoverEmail)],
     'recover-code-email': [recoverEmail, () => validateEmail(recoverEmail)],
     'recover-code': [recoverCode, () => (/^\d{8}$/.test(recoverCode) ? '' : 'El código tiene 8 dígitos.')],
@@ -107,19 +117,24 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
     if (rejected[id]) return rejected[id]
     const [value, validate] = rule
     const text = String(value || '')
-    if (!text.trim()) return ''
+    if (!text.trim()) return touched[id] ? EMPTY : ''
     if (!touched[id] && text.length < 8) return ''
     return validate()
   }
 
   const hint = (id) => {
     const message = shownError(id)
-    return message ? <small className="field-error" role="alert">No válido: {message}</small> : null
+    if (!message) return null
+    return <small className="field-error" role="alert">{message === EMPTY ? 'Campo vacío: este dato está sin rellenar.' : `No válido: ${message}`}</small>
   }
 
   const touch = (id) => {
     setTouched((current) => ({ ...current, [id]: true }))
     setRejected((current) => ({ ...current, [id]: '' }))
+  }
+
+  const touchAll = (ids) => {
+    setTouched((current) => ({ ...current, ...Object.fromEntries(ids.map((id) => [id, true])) }))
   }
 
   const cleanInput = (id, setter, clean, message) => (event) => {
@@ -154,6 +169,7 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
   const nextSignupStep = () => {
     const message = stepError(signupStep)
     if (message) {
+      touchAll(STEP_FIELDS[signupStep])
       setStatus({ error: message })
       return
     }
@@ -175,6 +191,7 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
       const password = loginForm.password
 
       if (!email || !password) {
+        touchAll(['login-email', 'login-password'])
         setStatus({ error: 'Escribe tu correo y contraseña para iniciar sesión.' })
         return
       }
@@ -209,6 +226,7 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
     for (let step = 1; step <= signupSteps.length; step += 1) {
       const message = stepError(step)
       if (message) {
+        touchAll(STEP_FIELDS[step])
         setSignupStep(step)
         setStatus({ error: message })
         return
@@ -272,6 +290,7 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
 
     const token = verificationCode.trim()
     const institution = institutionCode.trim()
+    touchAll([...(!emailVerified ? ['verification-code'] : []), ...(wantsAdmin ? ['institution-code'] : [])])
 
     if (!emailVerified && !/^\d{8}$/.test(token)) {
       setStatus({ error: 'Escribe el código de 8 dígitos que recibiste por correo.' })
@@ -365,6 +384,7 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
 
   const handleRecover = async (event) => {
     event.preventDefault()
+    touchAll(['recover-email'])
     setStatus(null)
     const result = await sendRecoveryCode()
     if (!result) return
@@ -382,6 +402,7 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
 
   const handleRecoverCode = async (event) => {
     event.preventDefault()
+    touchAll(['recover-code-email', 'recover-code'])
     if (!supabase) return
 
     const token = recoverCode.trim()
@@ -411,6 +432,7 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
 
   const handleResetPassword = async (event) => {
     event.preventDefault()
+    touchAll(['new-password', 'confirm-new-password'])
     if (!supabase) return
 
     if (newPassword.length < 8) {
@@ -523,7 +545,7 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
         )}
 
         {view === 'login' ? (
-          <form className="form-stack" onSubmit={handleSubmit}>
+          <form className="form-stack" noValidate onSubmit={handleSubmit}>
             <h2>Inicio de sesión</h2>
             <p className="muted">Accede con tu correo electrónico y contraseña.</p>
 
@@ -555,7 +577,10 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
                 onChange={updateLogin('password')}
                 placeholder="••••••••"
                 required
+                aria-invalid={Boolean(shownError('login-password'))}
+                onBlur={() => touch('login-password')}
               />
+              {hint('login-password')}
             </label>
 
             <button type="submit" className="btn btn-primary" disabled={busy}>
@@ -567,7 +592,7 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
             </button>
           </form>
         ) : view === 'recover' ? (
-          <form className="form-stack" onSubmit={handleRecover}>
+          <form className="form-stack" noValidate onSubmit={handleRecover}>
             <h2>Recupera tu cuenta</h2>
             <p className="muted">Escribe tu correo y te enviaremos un código para crear una nueva contraseña.</p>
             <label htmlFor="recover-email">
@@ -609,7 +634,7 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
             </button>
           </form>
         ) : view === 'recover-code' ? (
-          <form className="form-stack" onSubmit={handleRecoverCode}>
+          <form className="form-stack" noValidate onSubmit={handleRecoverCode}>
             <h2>Código de recuperación</h2>
             <p className="muted">Escribe tu correo y el código que te enviamos para crear una nueva contraseña.</p>
             <div className="code-hint">
@@ -659,7 +684,7 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
             </button>
           </form>
         ) : view === 'reset' ? (
-          <form className="form-stack" onSubmit={handleResetPassword}>
+          <form className="form-stack" noValidate onSubmit={handleResetPassword}>
             <h2>Nueva contraseña</h2>
             <p className="muted">Crea una contraseña nueva para tu cuenta.</p>
             <label htmlFor="new-password">
@@ -702,7 +727,7 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
             </button>
           </form>
         ) : view === 'verify' ? (
-          <form className="form-stack" onSubmit={handleVerify}>
+          <form className="form-stack" noValidate onSubmit={handleVerify}>
             {!emailVerified ? (
               <>
                 <h2>Introduce el código que te llegó al correo</h2>
@@ -777,7 +802,7 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
             )}
           </form>
         ) : (
-          <form className="form-stack" onSubmit={handleSubmit}>
+          <form className="form-stack" noValidate onSubmit={handleSubmit}>
             <h2>Registrarse</h2>
             <p className="muted">Completa tus datos paso a paso para crear tu cuenta.</p>
 
