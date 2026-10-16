@@ -140,10 +140,20 @@
     var css = document.createElement('style');
     css.textContent =
       '.ppi-tr{font-family:Nunito,system-ui,Arial,sans-serif;font-size:14px;color:#202124}' +
-      '#aviso-traduccion{position:fixed;top:16px;right:16px;z-index:99999;width:360px;max-width:calc(100vw - 32px);background:#fff;border-radius:18px;box-shadow:0 8px 30px rgba(0,0,0,.26);padding:16px}' +
-      '#aviso-traduccion h4{margin:0 0 12px;font-size:15px;font-weight:700}' +
-      '#aviso-traduccion select{width:100%;padding:9px 10px;margin-bottom:12px;border:1px solid #c6d4e6;border-radius:12px;font:inherit;background:#fff}' +
-      '#aviso-traduccion .acciones{display:flex;gap:8px;justify-content:flex-end}' +
+      '#aviso-traduccion{position:fixed;top:18px;right:18px;z-index:99999;width:390px;max-width:calc(100vw - 24px);background:rgba(255,255,255,.96);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(63,140,240,.25);border-radius:28px;box-shadow:0 22px 60px rgba(31,95,191,.28);padding:20px;overflow:hidden;animation:ppi-sube .35s ease both}' +
+      '#aviso-traduccion::before{content:"";position:absolute;right:-50px;top:-60px;width:170px;height:170px;border-radius:50%;background:radial-gradient(circle,rgba(106,174,252,.45),transparent 70%);pointer-events:none}' +
+      '#aviso-traduccion .cab{position:relative;display:flex;align-items:center;gap:12px;margin-bottom:10px;padding-right:34px}' +
+      '#aviso-traduccion .icono{display:grid;place-items:center;flex:none;width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#3f8cf0,#6aaefc);box-shadow:0 8px 18px rgba(63,140,240,.35);font-size:22px}' +
+      '#aviso-traduccion h4{margin:0;font-family:Quicksand,Nunito,system-ui,sans-serif;font-size:17px;line-height:1.25;color:#0a3a82}' +
+      '#aviso-traduccion .sub{position:relative;margin:0 0 14px;color:#4a6c9b;font-size:13.5px}' +
+      '#aviso-traduccion .cerrar{position:absolute;top:12px;right:12px;z-index:1;width:30px;height:30px;padding:0;border-radius:50%;background:#eaf3ff;color:#2c5c9e;font-size:14px;line-height:1}' +
+      '#aviso-traduccion .chips{position:relative;display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}' +
+      '#aviso-traduccion .chip{padding:8px 14px;border:1.5px solid #cfe3fb;background:#fff;color:#2c5c9e;border-radius:999px;font-weight:700;font-size:13.5px;transition:transform .15s,background .15s,box-shadow .15s}' +
+      '#aviso-traduccion .chip:hover{transform:translateY(-1px);background:#eaf3ff}' +
+      '#aviso-traduccion .chip.elegido{border-color:transparent;color:#fff;background:linear-gradient(135deg,#3f8cf0,#6aaefc);box-shadow:0 8px 18px rgba(63,140,240,.32)}' +
+      '#aviso-traduccion .acciones{position:relative;display:flex;gap:8px;justify-content:flex-end;align-items:center}' +
+      '#aviso-traduccion .si{padding:10px 22px;box-shadow:0 8px 18px rgba(63,140,240,.35)}' +
+      '@keyframes ppi-sube{from{opacity:0;transform:translateY(-10px) scale(.98)}to{opacity:1;transform:none}}' +
       '.ppi-tr button{border:0;border-radius:999px;padding:8px 16px;cursor:pointer;font-size:14px;font-family:inherit;font-weight:700}' +
       '.ppi-tr .si{background:linear-gradient(135deg,#3f8cf0,#6aaefc);color:#fff}.ppi-tr .no{background:transparent;color:#2c5c9e}' +
       '#aviso-traducida{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:99997;display:none;align-items:center;gap:12px;padding:8px 8px 8px 18px;border-radius:999px;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(63,140,240,.35);box-shadow:0 10px 28px rgba(63,140,240,.28);color:#0a3a82;font-weight:700;white-space:nowrap;max-width:calc(100vw - 24px)}' +
@@ -234,20 +244,40 @@
     box.id = 'aviso-traduccion';
     box.className = 'ppi-tr notranslate';
     box.setAttribute('translate', 'no');
-    var opts = IDIOMAS.map(function (i) { return '<option value="' + i[0] + '">' + i[1] + '</option>'; }).join('');
+    var chips = [[ORIGEN, 'Español']].concat(IDIOMAS).map(function (i) {
+      return '<button type="button" class="chip' + (i[0] === 'en' ? ' elegido' : '') + '" role="radio" aria-checked="' + (i[0] === 'en') + '" data-idioma="' + i[0] + '">' + i[1] + '</button>';
+    }).join('');
     box.innerHTML =
-      '<h4>¿Traducir esta página de español a otro idioma?</h4>' +
-      '<select aria-label="Idioma de destino">' + opts + '</select>' +
-      '<div class="acciones"><button class="no" type="button">Ahora no</button>' +
-      '<button class="si" type="button">Traducir</button></div>';
+      '<button class="cerrar" type="button" aria-label="Cerrar">✕</button>' +
+      '<div class="cab"><span class="icono" aria-hidden="true">🌐</span><h4>¿Ver esta página en otro idioma?</h4></div>' +
+      '<p class="sub">Ahora está en español. Elige un idioma:</p>' +
+      '<div class="chips" role="radiogroup" aria-label="Idioma de la página">' + chips + '</div>' +
+      '<div class="acciones"><button class="no" type="button">Ahora no</button><button class="si" type="button">Traducir</button></div>';
     document.body.appendChild(box);
-    box.querySelector('.no').onclick = function () { escribir(CERRADO, '1', sessionStorage); box.remove(); };
-    box.querySelector('.si').onclick = function () {
-      var codigo = box.querySelector('select').value;
+
+    var elegido = 'en';
+    var botonSi = box.querySelector('.si');
+    var botonesChip = box.querySelectorAll('.chip');
+    for (var c = 0; c < botonesChip.length; c++) {
+      botonesChip[c].onclick = function () {
+        elegido = this.getAttribute('data-idioma');
+        for (var k = 0; k < botonesChip.length; k++) {
+          var activo = botonesChip[k] === this;
+          botonesChip[k].className = 'chip' + (activo ? ' elegido' : '');
+          botonesChip[k].setAttribute('aria-checked', activo ? 'true' : 'false');
+        }
+        botonSi.textContent = elegido === ORIGEN ? 'Seguir en español' : 'Traducir';
+      };
+    }
+    function cerrarAviso() { escribir(CERRADO, '1', sessionStorage); box.remove(); }
+    box.querySelector('.no').onclick = cerrarAviso;
+    box.querySelector('.cerrar').onclick = cerrarAviso;
+    botonSi.onclick = function () {
+      if (elegido === ORIGEN) { cerrarAviso(); return; }
       box.remove();
       var botones = menu.querySelectorAll('button');
-      for (var i = 0; i < botones.length; i++) { botones[i].className = botones[i].getAttribute('data-idioma') === codigo ? 'actual' : ''; }
-      aplicar(codigo);
+      for (var i = 0; i < botones.length; i++) { botones[i].className = botones[i].getAttribute('data-idioma') === elegido ? 'actual' : ''; }
+      aplicar(elegido);
     };
   }
 
