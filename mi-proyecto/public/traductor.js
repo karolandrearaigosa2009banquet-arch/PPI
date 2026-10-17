@@ -204,7 +204,8 @@
       if (abrir) {
         var actual = otroCodigo();
         panel.innerHTML = '';
-        IDIOMAS.forEach(function (i) {
+        // Español siempre aparece primero en la lista.
+        [[ORIGEN, 'Español']].concat(IDIOMAS).forEach(function (i) {
           if (i[0] === actual) { return; }
           var b = document.createElement('button');
           b.type = 'button';
