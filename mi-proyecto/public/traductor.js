@@ -1,18 +1,18 @@
-/* traductor.js — traductor multiidioma para la app (Google Translate).
- * - Al abrir la página (si aún no elegiste idioma) muestra un aviso para traducir.
- * - Un aviso fijo arriba dice en qué idioma está la página y tiene el botón "Volver a Español".
- * - Un botón flotante "Idioma" permite cambiar de idioma o volver a Español.
- * - Google solo se carga si la persona elige traducir (no antes).
+/* traductor.js — traductor compacto (Google Translate).
+ * Una píldora pequeña abajo a la derecha: [Español] ⇄ [English]  Más ▾
+ * - Las flechas ⇄ cambian entre español y el otro idioma.
+ * - "Más" muestra el resto de idiomas.
+ * - Google solo se carga si la persona elige traducir.
  */
 (function () {
   var ORIGEN = 'es';
   var IDIOMAS = [
-    ['en', 'English'], ['pt', 'Português'], ['fr', 'Français'], ['de', 'Deutsch'],
-    ['it', 'Italiano'], ['zh-CN', '中文'], ['ja', '日本語'], ['ko', '한국어'],
-    ['ru', 'Русский'], ['ar', 'العربية'], ['hi', 'हिन्दी']
+    ['en', 'English', 'EN'], ['pt', 'Português', 'PT'], ['fr', 'Français', 'FR'], ['de', 'Deutsch', 'DE'],
+    ['it', 'Italiano', 'IT'], ['zh-CN', '中文', '中'], ['ja', '日本語', '日'], ['ko', '한국어', '한'],
+    ['ru', 'Русский', 'RU'], ['ar', 'العربية', 'ع'], ['hi', 'हिन्दी', 'हि']
   ];
   var LLAVE = 'ppi_idioma';
-  var CERRADO = 'ppi_aviso_traduccion_cerrado';
+  var ULTIMO = 'ppi_ultimo_idioma';
   var FORZAR_ES = 'ppi_forzar_es';
 
   // Google Translate envuelve el texto en <font>; este parche evita que React falle al re-renderizar.
@@ -33,9 +33,10 @@
   function escribir(k, v, almacen) { try { (almacen || localStorage).setItem(k, v); } catch (e) { /* sin almacenamiento */ } }
   function borrar(k, almacen) { try { (almacen || localStorage).removeItem(k); } catch (e) { /* sin almacenamiento */ } }
 
-  function nombreDe(codigo) {
-    for (var i = 0; i < IDIOMAS.length; i++) { if (IDIOMAS[i][0] === codigo) { return IDIOMAS[i][1]; } }
-    return 'Español';
+  function datosDe(codigo) {
+    if (codigo === ORIGEN) { return [ORIGEN, 'Español', 'ES']; }
+    for (var i = 0; i < IDIOMAS.length; i++) { if (IDIOMAS[i][0] === codigo) { return IDIOMAS[i]; } }
+    return IDIOMAS[0];
   }
 
   // Google puede guardar la cookie "googtrans" en distintas rutas y dominios: se borran todas.
@@ -60,12 +61,8 @@
       }
     }
   }
-  function ponerCookie(codigo) {
-    document.cookie = 'googtrans=/' + ORIGEN + '/' + codigo + '; path=/';
-  }
-  function estaTraducida() {
-    return /translated/.test(document.documentElement.className);
-  }
+  function ponerCookie(codigo) { document.cookie = 'googtrans=/' + ORIGEN + '/' + codigo + '; path=/'; }
+  function estaTraducida() { return /translated/.test(document.documentElement.className); }
 
   var googleCargado = false;
   function cargarGoogle() {
@@ -87,9 +84,7 @@
     document.body.appendChild(s);
   }
 
-  var etiqueta;   // texto del botón flotante
-  var barra;      // aviso fijo "Página traducida · Volver a Español"
-  var barraTexto;
+  var render = function () {};
 
   function volverAEspanol() {
     quitarCookies();
@@ -101,13 +96,14 @@
   function aplicar(codigo) {
     if (codigo === ORIGEN) {
       if (estaTraducida() || /googtrans=/.test(document.cookie) || leer(LLAVE)) { volverAEspanol(); return; }
-      etiqueta.textContent = 'Idioma: Español';
+      render();
       return;
     }
     borrar(FORZAR_ES, sessionStorage);
     escribir(LLAVE, codigo);
+    escribir(ULTIMO, codigo);
     ponerCookie(codigo);
-    etiqueta.textContent = 'Idioma: ' + nombreDe(codigo);
+    render();
     cargarGoogle();
     var intentos = 0;
     var t = setInterval(function () {
@@ -123,49 +119,27 @@
     }, 250);
   }
 
-  // Mantiene el aviso fijo y el botón de idioma al día con el estado real de la página.
-  function sincronizar() {
-    var traducida = estaTraducida();
-    var codigo = leer(LLAVE);
-    if (barra) {
-      barra.style.display = traducida ? 'flex' : 'none';
-      barraTexto.textContent = 'Página traducida' + (codigo ? ' a ' + nombreDe(codigo) : '');
-    }
-    if (etiqueta) {
-      etiqueta.textContent = 'Idioma: ' + (traducida && codigo ? nombreDe(codigo) : traducida ? 'Traducido' : 'Español');
-    }
-  }
-
   function iniciar() {
     var css = document.createElement('style');
     css.textContent =
-      '.ppi-tr{font-family:Nunito,system-ui,Arial,sans-serif;font-size:14px;color:#202124}' +
-      '#aviso-traduccion{position:fixed;top:18px;right:18px;z-index:99999;width:390px;max-width:calc(100vw - 24px);background:rgba(255,255,255,.96);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(63,140,240,.25);border-radius:28px;box-shadow:0 22px 60px rgba(31,95,191,.28);padding:20px;overflow:hidden;animation:ppi-sube .35s ease both}' +
-      '#aviso-traduccion::before{content:"";position:absolute;right:-50px;top:-60px;width:170px;height:170px;border-radius:50%;background:radial-gradient(circle,rgba(106,174,252,.45),transparent 70%);pointer-events:none}' +
-      '#aviso-traduccion .cab{position:relative;display:flex;align-items:center;gap:12px;margin-bottom:10px;padding-right:34px}' +
-      '#aviso-traduccion .icono{display:grid;place-items:center;flex:none;width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#3f8cf0,#6aaefc);box-shadow:0 8px 18px rgba(63,140,240,.35);font-size:22px}' +
-      '#aviso-traduccion h4{margin:0;font-family:Quicksand,Nunito,system-ui,sans-serif;font-size:17px;line-height:1.25;color:#0a3a82}' +
-      '#aviso-traduccion .sub{position:relative;margin:0 0 14px;color:#4a6c9b;font-size:13.5px}' +
-      '#aviso-traduccion .cerrar{position:absolute;top:12px;right:12px;z-index:1;width:30px;height:30px;padding:0;border-radius:50%;background:#eaf3ff;color:#2c5c9e;font-size:14px;line-height:1}' +
-      '#aviso-traduccion .chips{position:relative;display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}' +
-      '#aviso-traduccion .chip{padding:8px 14px;border:1.5px solid #cfe3fb;background:#fff;color:#2c5c9e;border-radius:999px;font-weight:700;font-size:13.5px;transition:transform .15s,background .15s,box-shadow .15s}' +
-      '#aviso-traduccion .chip:hover{transform:translateY(-1px);background:#eaf3ff}' +
-      '#aviso-traduccion .chip.elegido{border-color:transparent;color:#fff;background:linear-gradient(135deg,#3f8cf0,#6aaefc);box-shadow:0 8px 18px rgba(63,140,240,.32)}' +
-      '#aviso-traduccion .acciones{position:relative;display:flex;gap:8px;justify-content:flex-end;align-items:center}' +
-      '#aviso-traduccion .si{padding:10px 22px;box-shadow:0 8px 18px rgba(63,140,240,.35)}' +
-      '@keyframes ppi-sube{from{opacity:0;transform:translateY(-10px) scale(.98)}to{opacity:1;transform:none}}' +
-      '.ppi-tr button{border:0;border-radius:999px;padding:8px 16px;cursor:pointer;font-size:14px;font-family:inherit;font-weight:700}' +
-      '.ppi-tr .si{background:linear-gradient(135deg,#3f8cf0,#6aaefc);color:#fff}.ppi-tr .no{background:transparent;color:#2c5c9e}' +
-      '#aviso-traducida{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:99997;display:none;align-items:center;gap:12px;padding:8px 8px 8px 18px;border-radius:999px;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(63,140,240,.35);box-shadow:0 10px 28px rgba(63,140,240,.28);color:#0a3a82;font-weight:700;white-space:nowrap;max-width:calc(100vw - 24px)}' +
-      '#aviso-traducida .volver{background:linear-gradient(135deg,#3f8cf0,#6aaefc);color:#fff;box-shadow:0 6px 14px rgba(63,140,240,.35)}' +
-      '@media (max-width:520px){#aviso-traducida{top:8px;font-size:13px;gap:8px;padding:6px 6px 6px 14px}#aviso-traducida .volver{padding:7px 12px;font-size:13px}#aviso-traduccion{top:8px;right:8px}}' +
-      '#idioma-flotante{position:fixed;right:16px;bottom:16px;z-index:99998}' +
-      '#idioma-flotante .abrir{display:flex;align-items:center;gap:6px;padding:10px 16px;background:rgba(255,255,255,.88);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(63,140,240,.3);box-shadow:0 8px 24px rgba(63,140,240,.24);color:#0a3a82}' +
-      '#idioma-flotante .menu{position:absolute;right:0;bottom:52px;width:210px;max-height:60vh;overflow-y:auto;background:#fff;border-radius:18px;box-shadow:0 10px 32px rgba(0,0,0,.28);padding:6px;display:none}' +
-      '#idioma-flotante .menu.abierto{display:block}' +
-      '#idioma-flotante .menu button{display:block;width:100%;text-align:left;border-radius:12px;padding:9px 12px;background:transparent;color:#202124;font-weight:600}' +
-      '#idioma-flotante .menu button:hover{background:#eaf2fd}' +
-      '#idioma-flotante .menu button.actual{background:#dbe9fb;color:#0a3a82;font-weight:800}' +
+      '.ppi-tr{font-family:Nunito,system-ui,Arial,sans-serif;color:#202124}' +
+      '.ppi-tr button{border:0;cursor:pointer;font-family:inherit}' +
+      '#idioma-flotante{position:fixed;right:14px;bottom:14px;z-index:99998}' +
+      '#idioma-flotante .pildora{display:flex;align-items:center;gap:2px;padding:4px;border-radius:999px;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(63,140,240,.3);box-shadow:0 8px 22px rgba(63,140,240,.24)}' +
+      '#idioma-flotante .globo{padding:0 4px 0 8px;font-size:14px}' +
+      '#idioma-flotante .op{padding:6px 12px;border-radius:999px;background:transparent;color:#2c5c9e;font-weight:700;font-size:13px;transition:background .2s,color .2s,box-shadow .2s}' +
+      '#idioma-flotante .op:hover{background:#eaf3ff}' +
+      '#idioma-flotante .op.activo{background:linear-gradient(135deg,#3f8cf0,#6aaefc);color:#fff;box-shadow:0 4px 10px rgba(63,140,240,.35)}' +
+      '#idioma-flotante .cambiar{width:28px;height:28px;padding:0;border-radius:50%;background:#eaf3ff;color:#2c5c9e;font-size:15px;line-height:1;transition:transform .25s}' +
+      '#idioma-flotante .cambiar:hover{transform:scale(1.1)}' +
+      '#idioma-flotante .mas{padding:6px 10px;border-radius:999px;background:transparent;color:#2c5c9e;font-weight:700;font-size:12.5px}' +
+      '#idioma-flotante .mas:hover{background:#eaf3ff}' +
+      '#idioma-flotante .mas-panel{display:none;position:absolute;right:0;bottom:50px;width:250px;padding:12px;border-radius:20px;background:rgba(255,255,255,.97);border:1px solid rgba(63,140,240,.25);box-shadow:0 14px 40px rgba(31,95,191,.3);flex-wrap:wrap;gap:6px}' +
+      '#idioma-flotante .mas-panel.abierto{display:flex}' +
+      '#idioma-flotante .mas-panel button{padding:7px 12px;border-radius:999px;border:1.5px solid #cfe3fb;background:#fff;color:#2c5c9e;font-weight:700;font-size:13px}' +
+      '#idioma-flotante .mas-panel button:hover{background:#eaf3ff}' +
+      '#idioma-flotante .corto{display:none}' +
+      '@media (max-width:420px){#idioma-flotante{right:8px;bottom:8px}#idioma-flotante .largo{display:none}#idioma-flotante .corto{display:inline}#idioma-flotante .mas-panel{width:220px}}' +
       '.goog-te-banner-frame,.skiptranslate iframe,.VIpgJd-ZVi9od-ORHb-OEVmcd,.VIpgJd-ZVi9od-aZ2wEe-wOHMyf{display:none!important}' +
       'body{top:0!important}.goog-text-highlight{background:none!important;box-shadow:none!important}' +
       '#goog-gt-tt,.goog-te-balloon-frame{display:none!important}';
@@ -177,108 +151,77 @@
     var guardado = forzarEs ? null : leer(LLAVE);
     if (guardado && guardado !== ORIGEN) { ponerCookie(guardado); cargarGoogle(); }
 
-    // Aviso fijo: página traducida + volver a español
-    barra = document.createElement('div');
-    barra.id = 'aviso-traducida';
-    barra.className = 'ppi-tr notranslate';
-    barra.setAttribute('translate', 'no');
-    barraTexto = document.createElement('span');
-    var volver = document.createElement('button');
-    volver.type = 'button';
-    volver.className = 'volver';
-    volver.textContent = 'Volver a Español';
-    volver.onclick = volverAEspanol;
-    barra.appendChild(barraTexto);
-    barra.appendChild(volver);
-    document.body.appendChild(barra);
-
-    // Botón flotante de idioma
     var caja = document.createElement('div');
     caja.id = 'idioma-flotante';
     caja.className = 'ppi-tr notranslate';
     caja.setAttribute('translate', 'no');
-    var abrir = document.createElement('button');
-    abrir.type = 'button';
-    abrir.className = 'abrir';
-    abrir.setAttribute('aria-haspopup', 'listbox');
-    abrir.setAttribute('aria-expanded', 'false');
-    abrir.innerHTML = '<span aria-hidden="true">🌐</span><span class="etq"></span>';
-    etiqueta = abrir.querySelector('.etq');
-    var menu = document.createElement('div');
-    menu.className = 'menu';
-    menu.setAttribute('role', 'listbox');
-    var opciones = [[ORIGEN, 'Español (original)']].concat(IDIOMAS);
-    opciones.forEach(function (o) {
-      var b = document.createElement('button');
-      b.type = 'button';
-      b.setAttribute('role', 'option');
-      b.setAttribute('data-idioma', o[0]);
-      b.textContent = o[1];
-      if ((guardado || ORIGEN) === o[0]) { b.className = 'actual'; }
-      b.onclick = function () {
-        menu.className = 'menu';
-        abrir.setAttribute('aria-expanded', 'false');
-        var todos = menu.querySelectorAll('button');
-        for (var i = 0; i < todos.length; i++) { todos[i].className = (todos[i] === b) ? 'actual' : ''; }
-        var aviso = document.getElementById('aviso-traduccion');
-        if (aviso) { aviso.remove(); }
-        aplicar(o[0]);
-      };
-      menu.appendChild(b);
-    });
-    abrir.onclick = function () {
-      var abierto = menu.className.indexOf('abierto') === -1;
-      menu.className = abierto ? 'menu abierto' : 'menu';
-      abrir.setAttribute('aria-expanded', abierto ? 'true' : 'false');
-    };
-    caja.appendChild(menu);
-    caja.appendChild(abrir);
+    caja.innerHTML =
+      '<div class="mas-panel" role="listbox" aria-label="Más idiomas"></div>' +
+      '<div class="pildora" role="group" aria-label="Idioma de la página">' +
+        '<span class="globo" aria-hidden="true">🌐</span>' +
+        '<button type="button" class="op op-es" data-idioma="es"><span class="largo">Español</span><span class="corto">ES</span></button>' +
+        '<button type="button" class="cambiar" aria-label="Cambiar entre idiomas" title="Cambiar">⇄</button>' +
+        '<button type="button" class="op op-otro"><span class="largo"></span><span class="corto"></span></button>' +
+        '<button type="button" class="mas" aria-expanded="false" aria-label="Ver más idiomas">Más <span aria-hidden="true">▾</span></button>' +
+      '</div>';
     document.body.appendChild(caja);
 
-    sincronizar();
-    setInterval(sincronizar, 600);
+    var panel = caja.querySelector('.mas-panel');
+    var botonEs = caja.querySelector('.op-es');
+    var botonOtro = caja.querySelector('.op-otro');
+    var botonCambiar = caja.querySelector('.cambiar');
+    var botonMas = caja.querySelector('.mas');
 
-    // Aviso inicial (solo si no hay idioma elegido y no se cerró en esta sesión)
-    if (guardado || leer(CERRADO, sessionStorage)) { return; }
-    var box = document.createElement('div');
-    box.id = 'aviso-traduccion';
-    box.className = 'ppi-tr notranslate';
-    box.setAttribute('translate', 'no');
-    var chips = [[ORIGEN, 'Español']].concat(IDIOMAS).map(function (i) {
-      return '<button type="button" class="chip' + (i[0] === 'en' ? ' elegido' : '') + '" role="radio" aria-checked="' + (i[0] === 'en') + '" data-idioma="' + i[0] + '">' + i[1] + '</button>';
-    }).join('');
-    box.innerHTML =
-      '<button class="cerrar" type="button" aria-label="Cerrar">✕</button>' +
-      '<div class="cab"><span class="icono" aria-hidden="true">🌐</span><h4>¿Ver esta página en otro idioma?</h4></div>' +
-      '<p class="sub">Ahora está en español. Elige un idioma:</p>' +
-      '<div class="chips" role="radiogroup" aria-label="Idioma de la página">' + chips + '</div>' +
-      '<div class="acciones"><button class="no" type="button">Ahora no</button><button class="si" type="button">Traducir</button></div>';
-    document.body.appendChild(box);
-
-    var elegido = 'en';
-    var botonSi = box.querySelector('.si');
-    var botonesChip = box.querySelectorAll('.chip');
-    for (var c = 0; c < botonesChip.length; c++) {
-      botonesChip[c].onclick = function () {
-        elegido = this.getAttribute('data-idioma');
-        for (var k = 0; k < botonesChip.length; k++) {
-          var activo = botonesChip[k] === this;
-          botonesChip[k].className = 'chip' + (activo ? ' elegido' : '');
-          botonesChip[k].setAttribute('aria-checked', activo ? 'true' : 'false');
-        }
-        botonSi.textContent = elegido === ORIGEN ? 'Seguir en español' : 'Traducir';
-      };
+    function otroCodigo() {
+      var cod = leer(LLAVE);
+      return (cod && cod !== ORIGEN) ? cod : (leer(ULTIMO) || 'en');
     }
-    function cerrarAviso() { escribir(CERRADO, '1', sessionStorage); box.remove(); }
-    box.querySelector('.no').onclick = cerrarAviso;
-    box.querySelector('.cerrar').onclick = cerrarAviso;
-    botonSi.onclick = function () {
-      if (elegido === ORIGEN) { cerrarAviso(); return; }
-      box.remove();
-      var botones = menu.querySelectorAll('button');
-      for (var i = 0; i < botones.length; i++) { botones[i].className = botones[i].getAttribute('data-idioma') === elegido ? 'actual' : ''; }
-      aplicar(elegido);
+    function cerrarPanel() {
+      panel.className = 'mas-panel';
+      botonMas.setAttribute('aria-expanded', 'false');
+    }
+
+    render = function () {
+      var traducida = estaTraducida() || (leer(LLAVE) && leer(LLAVE) !== ORIGEN && !forzarEs && /googtrans=/.test(document.cookie));
+      var otro = datosDe(otroCodigo());
+      botonOtro.setAttribute('data-idioma', otro[0]);
+      botonOtro.querySelector('.largo').textContent = otro[1];
+      botonOtro.querySelector('.corto').textContent = otro[2];
+      botonEs.className = 'op op-es' + (traducida ? '' : ' activo');
+      botonOtro.className = 'op op-otro' + (traducida ? ' activo' : '');
+      botonEs.setAttribute('aria-pressed', traducida ? 'false' : 'true');
+      botonOtro.setAttribute('aria-pressed', traducida ? 'true' : 'false');
     };
+
+    botonEs.onclick = function () { cerrarPanel(); aplicar(ORIGEN); };
+    botonOtro.onclick = function () { cerrarPanel(); aplicar(botonOtro.getAttribute('data-idioma')); };
+    botonCambiar.onclick = function () {
+      cerrarPanel();
+      if (estaTraducida() || leer(LLAVE)) { aplicar(ORIGEN); } else { aplicar(otroCodigo()); }
+    };
+    botonMas.onclick = function () {
+      var abrir = panel.className.indexOf('abierto') === -1;
+      if (abrir) {
+        var actual = otroCodigo();
+        panel.innerHTML = '';
+        IDIOMAS.forEach(function (i) {
+          if (i[0] === actual) { return; }
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.setAttribute('role', 'option');
+          b.setAttribute('data-idioma', i[0]);
+          b.textContent = i[1];
+          b.onclick = function () { cerrarPanel(); aplicar(i[0]); };
+          panel.appendChild(b);
+        });
+      }
+      panel.className = abrir ? 'mas-panel abierto' : 'mas-panel';
+      botonMas.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+    };
+    document.addEventListener('click', function (e) { if (!caja.contains(e.target)) { cerrarPanel(); } });
+
+    render();
+    setInterval(render, 600);
   }
 
   if (document.body) { iniciar(); } else { document.addEventListener('DOMContentLoaded', iniciar); }

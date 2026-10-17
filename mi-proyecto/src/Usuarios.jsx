@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import Avatar from './Avatar'
 import { supabase } from './supabaseClient'
 
 const formatDate = (value) => value ? new Intl.DateTimeFormat('es-CO', { dateStyle: 'medium' }).format(new Date(value)) : 'Sin fecha'
@@ -13,7 +14,7 @@ export default function Usuarios() {
     let active = true
     supabase
       .from('profiles')
-      .select('user_id, full_name, email, phone, document_type, document_number, role, created_at')
+      .select('user_id, full_name, email, phone, document_type, document_number, role, created_at, avatar_path')
       .order('created_at', { ascending: false })
       .then(({ data, error: queryError }) => {
         if (!active) return
@@ -65,7 +66,10 @@ export default function Usuarios() {
               <div className="case-top">
                 <span className="case-type">{user.role === 'admin' ? 'Administrador' : 'Usuario'}</span>
               </div>
-              <h3>{user.full_name || 'Sin nombre'}</h3>
+              <div className="user-row">
+                <Avatar name={user.full_name} path={user.avatar_path} size="lg" />
+                <h3>{user.full_name || 'Sin nombre'}</h3>
+              </div>
               <div className="case-user">
                 <span><strong>Cédula:</strong> {user.document_number ? `${String(user.document_type || '').toUpperCase()} ${user.document_number}`.trim() : 'No registrada'}</span>
                 <span><strong>Correo:</strong> {user.email || 'No registrado'}</span>

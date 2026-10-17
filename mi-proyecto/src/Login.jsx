@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import logoPqr from './assets/logo-pqr.webp'
 import { getAppUrl, supabase } from './supabaseClient'
 import { DOCUMENT_OPTIONS, normalizeAddress, normalizeEmail, normalizeName, normalizePhone, validateAddress, validateDocument, validateEmail, validateName, validatePassword, validatePhone } from './validators'
 
@@ -479,7 +480,7 @@ export default function Login({ recovering = false, onRecoveryStart = () => {}, 
         </svg>
 
         <div className="panel-brand">
-          <span className="panel-brand-icon" aria-hidden="true">✚</span>
+          <img className="panel-brand-logo" src={logoPqr} alt="" />
           <span className="panel-brand-text"><strong>Sistema PQR</strong><small>(Peticiones, Quejas y Reclamos)</small></span>
           <span className="version-badge" title="Versión publicada de la página">v{String(__APP_VERSION__).split(' ')[0]}</span>
         </div>

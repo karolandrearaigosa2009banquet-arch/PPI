@@ -15,3 +15,6 @@ export const isSupabaseConfigured = Boolean(url && key)
 export const supabase = isSupabaseConfigured
   ? createClient(url, key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } })
   : null
+
+// URL pública de la foto de perfil (bucket "avatars").
+export const avatarUrl = (path) => (supabase && path ? supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl : '')
