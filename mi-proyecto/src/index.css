@@ -308,3 +308,11 @@ input:focus, textarea:focus, select:focus { border-color: var(--bubble-1); box-s
 .perfil-datos dd { margin: 4px 0 0; color: #0f2f57; font-weight: 700; overflow-wrap: anywhere; }
 @media (max-width: 780px) { .perfil-grid { grid-template-columns: 1fr; } .hero-person { width: 100%; } }
 @media (max-width: 780px) { .account-link > span:last-child { display: none; } .account-link { padding-right: 4px; } }
+
+/* Editar datos del perfil */
+.perfil-aviso { margin: 18px 0 0; }
+.perfil-datos-caja { display: grid; gap: 16px; }
+.perfil-editar { justify-self: start; }
+.perfil-form { margin: 0; }
+.perfil-acciones-fin { justify-content: flex-end; }
+.perfil-form .perfil-nota { max-width: none; text-align: left; overflow-wrap: anywhere; }

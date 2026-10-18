@@ -40,9 +40,9 @@ export default function Productos({ session, profile, onProfileChange = () => {}
           <p>{admin ? 'Revisa quién envió cada PQR, responde los casos y mantén informada a la comunidad.' : 'Radica una solicitud y consulta el estado de tus PQR en cualquier momento.'}</p>
         </div>
         <button type="button" className="hero-stat hero-person" onClick={() => setTab('perfil')} title="Ir a mi perfil">
-          <Avatar name={profile.full_name} path={profile.avatar_path} size="lg" />
+          <Avatar name={profile.full_name || profile.email} path={profile.avatar_path} size="lg" />
           <span>
-            <strong>Hola, {firstName}</strong>
+            <strong>{firstName ? `Hola, ${firstName}` : 'Hola'}</strong>
             <small>{admin ? 'Administrador · atención prioritaria' : 'Tu espacio seguro y privado'}</small>
           </span>
         </button>
