@@ -1,2 +1,7 @@
 node_modules/
 node_modules/
+
+# Variables de entorno: nunca al repositorio
+.env
+.env.*
+!.env.example

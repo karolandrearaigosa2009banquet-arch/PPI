@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Variables de entorno: nunca al repositorio (se inyectan en el build con GitHub Secrets)
+.env
+.env.*
+!.env.example
