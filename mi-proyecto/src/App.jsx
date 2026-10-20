@@ -6,6 +6,24 @@ import Login from './Login'
 import Productos from './Productos'
 import './index.css'
 
+function buildProfile(user, storedProfile) {
+  const metadata = user.user_metadata || {}
+  const metadataName = [metadata.first_name, metadata.last_name].filter(Boolean).join(' ')
+
+  return {
+    ...storedProfile,
+    user_id: user.id,
+    full_name: storedProfile?.full_name || metadata.full_name || metadataName || user.email || 'Usuario',
+    email: storedProfile?.email || user.email || '',
+    phone: storedProfile?.phone || metadata.phone || '',
+    address: storedProfile?.address || metadata.address || '',
+    document_type: storedProfile?.document_type || metadata.document_type || '',
+    document_number: storedProfile?.document_number || metadata.document_number || '',
+    role: storedProfile?.role || 'user',
+    avatar_path: storedProfile?.avatar_path || null,
+  }
+}
+
 function App() {
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
@@ -20,8 +38,14 @@ function App() {
       setSession(currentSession)
       if (!currentSession?.user) { setProfile(null); setLoading(false); return }
       const { data, error } = await supabase.from('profiles').select('user_id, full_name, email, phone, address, document_type, document_number, role, avatar_path').eq('user_id', currentSession.user.id).maybeSingle()
-      if (error) setNotice('No fue posible cargar tu perfil. Verifica la configuración de la base de datos.')
-      setProfile(data)
+      if (error) {
+        setNotice('No fue posible cargar el perfil guardado. Se muestran tus datos de registro; verifica la configuración de la base de datos.')
+      } else if (!data) {
+        setNotice('Tu perfil aún no se ha guardado. Se muestran tus datos de registro; revisa “Mi perfil” para completar la información.')
+      } else {
+        setNotice('')
+      }
+      setProfile(buildProfile(currentSession.user, data))
       setLoading(false)
     }
     supabase.auth.getSession().then(({ data }) => load(data.session))
